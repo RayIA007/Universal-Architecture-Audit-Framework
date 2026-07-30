@@ -1,0 +1,43 @@
+08_SCRIPTS/uaaf_core
+│
+├── kernel.py
+├── engine.py
+├── audit_orchestrator.py
+├── registry.py
+├── models.py
+├── exceptions.py
+│
+├── engines
+│   ├── contract_engine.py
+│   ├── rule_engine.py
+│   ├── evidence_engine.py
+│   ├── finding_engine.py
+│   ├── scoring_engine.py
+│   ├── metrics_engine.py
+│   ├── traceability_engine.py
+│   └── report_engine.py
+│
+├── adapters
+│   ├── filesystem_adapter.py
+│   ├── markdown_adapter.py
+│   ├── python_ast_adapter.py
+│   ├── yaml_adapter.py
+│   └── json_adapter.py
+│
+├── auditors
+│   ├── base_auditor.py
+│   ├── documentation_auditor.py
+│   ├── architecture_auditor.py
+│   ├── code_auditor.py
+│   ├── testing_auditor.py
+│   └── ai_system_auditor.py
+│
+├── plugins
+│   ├── plugin_manager.py
+│   ├── plugin_loader.py
+│   └── plugin_validator.py
+│
+└── reporting
+    ├── report_generator.py
+    ├── matrix_generator.py
+    └── markdown_renderer.py

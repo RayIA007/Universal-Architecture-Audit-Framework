@@ -1,0 +1,564 @@
+"""
+Runtime implementation for the Universal Architecture Audit Framework.
+
+This module defines the runtime responsible for controlling one UAAF audit
+execution. It coordinates the lifecycle of the Audit and AuditSession domain
+objects, resolves processors through the Registry, executes them, and stores
+their normalized results in the RuntimeContext.
+
+Pipeline construction, plugin discovery, report generation, and command-line
+interaction are intentionally outside this module.
+"""
+
+from __future__ import annotations
+
+from threading import RLock
+from typing import Any
+
+from uaaf_core.contracts.processor import ProcessorResult
+from uaaf_core.models.enums import AuditStatus, SessionStatus
+from uaaf_core.runtime.runtime_context import RuntimeContext
+
+
+class UAAFRuntime:
+    """
+    Control the lifecycle of one UAAF audit execution.
+
+    The runtime operates exclusively on one RuntimeContext and provides
+    bounded operations for initialization, startup, processor execution,
+    successful completion, failure handling, and cleanup.
+
+    Lifecycle:
+
+        initialize
+            ↓
+        start
+            ↓
+        execute_processor
+            ↓
+        complete
+
+    Any execution error may transition the runtime to a failed state.
+    """
+
+    runtime_version = "1.0.0"
+
+    def __init__(self, context: RuntimeContext) -> None:
+        """
+        Initialize the runtime.
+
+        Args:
+            context:
+                Runtime context owned by this runtime.
+        """
+        if not isinstance(context, RuntimeContext):
+            raise TypeError(
+                "UAAFRuntime context must be a RuntimeContext instance, "
+                f"received {type(context).__name__}."
+            )
+
+        self._context = context
+        self._lock = RLock()
+
+    @property
+    def context(self) -> RuntimeContext:
+        """Return the runtime context."""
+        return self._context
+
+    @property
+    def audit_id(self) -> str:
+        """Return the active audit identifier."""
+        return self._context.audit_id
+
+    @property
+    def session_id(self) -> str:
+        """Return the active session identifier."""
+        return self._context.session_id
+
+    @property
+    def profile_id(self) -> str:
+        """Return the active profile identifier."""
+        return self._context.profile_id
+
+    @property
+    def is_initialized(self) -> bool:
+        """Return whether runtime initialization completed."""
+        return (
+            self._context.audit.status is AuditStatus.READY
+            and self._context.session.status is SessionStatus.OPEN
+        )
+
+    @property
+    def is_running(self) -> bool:
+        """Return whether the runtime is actively executing."""
+        return (
+            self._context.audit.status is AuditStatus.RUNNING
+            and self._context.session.status is SessionStatus.RUNNING
+        )
+
+    @property
+    def is_terminal(self) -> bool:
+        """Return whether both audit and session are terminal."""
+        return (
+            self._context.audit.is_terminal
+            and self._context.session.is_terminal
+        )
+
+    @property
+    def processor_results(self) -> tuple[ProcessorResult, ...]:
+        """Return stored processor results in execution order."""
+        return self._context.list_processor_results()
+
+    def initialize(self) -> None:
+        """
+        Prepare the audit and session for execution.
+
+        Initialization:
+
+        1. Validates profile dependencies.
+        2. Moves the Audit to INITIALIZING.
+        3. Opens the AuditSession.
+        4. Moves the Audit to READY.
+        5. Stores initial runtime metadata and metrics.
+
+        Raises:
+            RuntimeError:
+                If required processor dependencies are missing.
+            ValueError:
+                If the current lifecycle state is invalid.
+        """
+        with self._lock:
+            self._require_non_terminal()
+
+            if self.is_initialized:
+                raise ValueError(
+                    "UAAFRuntime is already initialized."
+                )
+
+            audit = self._context.audit
+            session = self._context.session
+            profile = self._context.profile
+            registry = self._context.registry
+
+            missing_processors = registry.validate_profile_dependencies(
+                profile.id
+            )
+
+            if missing_processors:
+                missing = ", ".join(
+                    repr(processor_id)
+                    for processor_id in missing_processors
+                )
+
+                raise RuntimeError(
+                    f"Audit profile {profile.id!r} has missing processor "
+                    f"dependencies: {missing}."
+                )
+
+            if not profile.enabled:
+                raise RuntimeError(
+                    f"Audit profile {profile.id!r} is disabled."
+                )
+
+            if not profile.processor_ids:
+                raise RuntimeError(
+                    f"Audit profile {profile.id!r} does not declare "
+                    "processors."
+                )
+
+            try:
+                audit.mark_initializing()
+                session.open()
+                audit.mark_ready()
+            except Exception as error:
+                self._fail_internal(
+                    reason=(
+                        "Runtime initialization failed: "
+                        f"{self._format_exception(error)}"
+                    )
+                )
+                raise
+
+            self._context.set_metadata(
+                "runtime_version",
+                self.runtime_version,
+            )
+            self._context.set_metadata(
+                "profile_version",
+                profile.version,
+            )
+            self._context.set_metric(
+                "processors_expected",
+                len(profile.processor_ids),
+            )
+            self._context.set_metric(
+                "processors_executed",
+                0,
+            )
+            self._context.set_metric(
+                "processors_succeeded",
+                0,
+            )
+            self._context.set_metric(
+                "processors_failed",
+                0,
+            )
+            self._context.set_metric(
+                "processors_with_warnings",
+                0,
+            )
+
+    def start(self) -> None:
+        """
+        Start runtime execution.
+
+        The runtime must be initialized before it can start.
+        """
+        with self._lock:
+            if not self.is_initialized:
+                raise RuntimeError(
+                    "UAAFRuntime must be initialized before it can start."
+                )
+
+            try:
+                self._context.audit.mark_running()
+                self._context.session.start()
+            except Exception as error:
+                self._fail_internal(
+                    reason=(
+                        "Runtime startup failed: "
+                        f"{self._format_exception(error)}"
+                    )
+                )
+                raise
+
+    def execute_processor(
+        self,
+        processor_id: str,
+    ) -> ProcessorResult:
+        """
+        Resolve and execute one registered processor.
+
+        Args:
+            processor_id:
+                Identifier of the processor to execute.
+
+        Returns:
+            Normalized ProcessorResult.
+
+        Raises:
+            RuntimeError:
+                If the runtime is not running.
+            KeyError:
+                If the processor is not registered.
+            ValueError:
+                If the processor was already executed.
+            Exception:
+                Re-raises processor execution failures after updating the
+                runtime failure state.
+        """
+        normalized_id = self._normalize_identifier(
+            value=processor_id,
+            field_name="processor identifier",
+        )
+
+        with self._lock:
+            self._require_running()
+
+            if not self._context.profile.requires_processor(normalized_id):
+                raise ValueError(
+                    f"Processor {normalized_id!r} is not declared by "
+                    f"profile {self.profile_id!r}."
+                )
+
+            if self._context.has_processor_result(normalized_id):
+                raise ValueError(
+                    f"Processor {normalized_id!r} has already been executed."
+                )
+
+            processor = self._context.registry.create_processor(
+                normalized_id
+            )
+
+            try:
+                result = processor.run(self._context.session)
+            except Exception as error:
+                self._capture_failed_processor_result(normalized_id)
+
+                self._context.increment_metric(
+                    "processors_executed"
+                )
+                self._context.increment_metric(
+                    "processors_failed"
+                )
+
+                self._fail_internal(
+                    reason=(
+                        f"Processor {normalized_id!r} failed: "
+                        f"{self._format_exception(error)}"
+                    )
+                )
+
+                raise
+
+            self._context.add_processor_result(result)
+            self._context.increment_metric("processors_executed")
+            self._context.increment_metric("processors_succeeded")
+
+            if result.has_warnings:
+                self._context.increment_metric(
+                    "processors_with_warnings"
+                )
+
+            return result
+
+    def execute_profile_processors(
+        self,
+    ) -> tuple[ProcessorResult, ...]:
+        """
+        Execute all processors declared by the active profile.
+
+        Processors are executed sequentially in profile order. Execution stops
+        immediately if one processor fails.
+
+        This method provides the minimal v1.0 sequential execution mechanism.
+        The dedicated Pipeline subsystem will later become responsible for
+        advanced ordering and execution policies.
+        """
+        with self._lock:
+            self._require_running()
+            processor_ids = tuple(
+                self._context.profile.processor_ids
+            )
+
+        results: list[ProcessorResult] = []
+
+        for processor_id in processor_ids:
+            result = self.execute_processor(processor_id)
+            results.append(result)
+
+        return tuple(results)
+
+    def complete(self) -> None:
+        """
+        Complete the runtime successfully.
+
+        The runtime is completed with warnings when any processor or session
+        warning exists.
+        """
+        with self._lock:
+            self._require_running()
+
+            expected = len(self._context.profile.processor_ids)
+            executed = self._context.processor_result_count
+
+            if executed != expected:
+                raise RuntimeError(
+                    "UAAFRuntime cannot complete because not all profile "
+                    f"processors were executed. Expected {expected}, "
+                    f"received {executed}."
+                )
+
+            with_warnings = (
+                self._context.has_processor_warnings
+                or self._context.session.has_warnings
+            )
+
+            try:
+                self._context.session.begin_closing()
+                self._context.audit.mark_completed(
+                    with_warnings=with_warnings
+                )
+                self._context.session.close()
+            except Exception as error:
+                self._fail_internal(
+                    reason=(
+                        "Runtime completion failed: "
+                        f"{self._format_exception(error)}"
+                    )
+                )
+                raise
+
+            self._context.set_metadata(
+                "completed_with_warnings",
+                with_warnings,
+            )
+            self._context.set_metric(
+                "runtime_duration_seconds",
+                self._context.session.duration_seconds or 0.0,
+            )
+
+            self._context.clear_transient_state()
+
+    def fail(self, reason: str) -> None:
+        """
+        Mark the runtime as failed.
+
+        Args:
+            reason:
+                Human-readable failure reason.
+        """
+        normalized_reason = self._normalize_identifier(
+            value=reason,
+            field_name="failure reason",
+        )
+
+        with self._lock:
+            if self.is_terminal:
+                raise ValueError(
+                    "UAAFRuntime is already in a terminal state."
+                )
+
+            self._fail_internal(reason=normalized_reason)
+
+    def run(self) -> tuple[ProcessorResult, ...]:
+        """
+        Execute the complete sequential runtime lifecycle.
+
+        Returns:
+            Processor results in profile execution order.
+
+        Lifecycle:
+
+            initialize
+                ↓
+            start
+                ↓
+            execute profile processors
+                ↓
+            complete
+        """
+        self.initialize()
+        self.start()
+        results = self.execute_profile_processors()
+        self.complete()
+
+        return results
+
+    def set_shared(self, key: str, value: Any) -> None:
+        """Store one shared runtime value."""
+        with self._lock:
+            self._context.set_shared(key, value)
+
+    def get_shared(
+        self,
+        key: str,
+        default: Any = None,
+    ) -> Any:
+        """Return one shared runtime value."""
+        with self._lock:
+            return self._context.get_shared(key, default)
+
+    def snapshot(self) -> dict[str, Any]:
+        """
+        Return a serializable runtime summary.
+        """
+        with self._lock:
+            return {
+                "runtime_version": self.runtime_version,
+                "is_initialized": self.is_initialized,
+                "is_running": self.is_running,
+                "is_terminal": self.is_terminal,
+                "audit_status": self._context.audit.status.value,
+                "session_status": self._context.session.status.value,
+                "context": self._context.snapshot(),
+            }
+
+    def _capture_failed_processor_result(
+        self,
+        processor_id: str,
+    ) -> None:
+        """
+        Copy a failed ProcessorResult from session context when available.
+
+        ProcessorContract stores failed results in the AuditSession before
+        re-raising the original exception.
+        """
+        result_key = f"processor_result:{processor_id}"
+        result = self._context.session.get_context(result_key)
+
+        if isinstance(result, ProcessorResult):
+            self._context.add_processor_result(
+                result,
+                replace=True,
+            )
+
+    def _fail_internal(self, reason: str) -> None:
+        """
+        Apply failure state without rejecting partially initialized runtimes.
+
+        This method is used internally while handling exceptions.
+        """
+        audit = self._context.audit
+        session = self._context.session
+
+        if not session.is_terminal:
+            try:
+                session.fail(reason)
+            except (ValueError, TypeError):
+                session.add_error(reason)
+
+        if not audit.is_terminal:
+            try:
+                audit.mark_failed(reason)
+            except (ValueError, TypeError):
+                audit.failure_reason = reason
+
+        self._context.set_metadata(
+            "failure_reason",
+            reason,
+        )
+        self._context.set_metric(
+            "runtime_duration_seconds",
+            session.duration_seconds or 0.0,
+        )
+
+        self._context.clear_transient_state()
+
+    def _require_running(self) -> None:
+        """Require a fully running audit and session."""
+        if not self.is_running:
+            raise RuntimeError(
+                "UAAFRuntime must be running to execute this operation. "
+                f"Audit status: {self._context.audit.status.value!r}; "
+                f"session status: {self._context.session.status.value!r}."
+            )
+
+    def _require_non_terminal(self) -> None:
+        """Reject operations after runtime termination."""
+        if self.is_terminal:
+            raise RuntimeError(
+                "UAAFRuntime has already reached a terminal state."
+            )
+
+    @staticmethod
+    def _normalize_identifier(
+        *,
+        value: str,
+        field_name: str,
+    ) -> str:
+        """Validate and normalize a required runtime string."""
+        if not isinstance(value, str):
+            raise TypeError(
+                f"UAAFRuntime {field_name} must be a string, "
+                f"received {type(value).__name__}."
+            )
+
+        normalized_value = value.strip()
+
+        if not normalized_value:
+            raise ValueError(
+                f"UAAFRuntime {field_name} cannot be empty."
+            )
+
+        return normalized_value
+
+    @staticmethod
+    def _format_exception(error: Exception) -> str:
+        """Return a stable human-readable exception representation."""
+        message = str(error).strip()
+
+        if message:
+            return f"{type(error).__name__}: {message}"
+
+        return type(error).__name__

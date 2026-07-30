@@ -1,0 +1,650 @@
+"""
+Sequential pipeline subsystem for the Universal Architecture Audit Framework.
+
+This module defines the deterministic v1.0 pipeline used to validate, order,
+and execute processors declared by an AuditProfile.
+
+The pipeline operates on RuntimeContext. It does not own the Kernel, discover
+plugins, generate reports, or implement parallel execution.
+"""
+
+from __future__ import annotations
+
+from collections import defaultdict, deque
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from enum import Enum
+from threading import RLock
+from typing import Any, Iterable
+
+from uaaf_core.contracts.processor import ProcessorResult
+from uaaf_core.runtime.dependency_resolver import DependencyResolver
+from uaaf_core.runtime.runtime_context import RuntimeContext
+
+
+class PipelineStatus(str, Enum):
+    """Lifecycle status of one pipeline execution."""
+
+    CREATED = "created"
+    VALIDATING = "validating"
+    READY = "ready"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    COMPLETED_WITH_WARNINGS = "completed_with_warnings"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+class PipelineFailurePolicy(str, Enum):
+    """Policy applied when one processor raises an exception."""
+
+    STOP_ON_ERROR = "stop_on_error"
+    CONTINUE_ON_ERROR = "continue_on_error"
+
+
+@dataclass(frozen=True, slots=True)
+class PipelineStep:
+    """
+    Immutable declaration of one processor execution step.
+
+    Attributes:
+        processor_id:
+            Registered processor identifier.
+        depends_on:
+            Processor identifiers that must execute before this step.
+        enabled:
+            Whether the step participates in execution.
+        required:
+            Whether failure of this step makes the pipeline unsuccessful.
+        metadata:
+            Immutable-by-convention step metadata.
+    """
+
+    processor_id: str
+    depends_on: tuple[str, ...] = ()
+    enabled: bool = True
+    required: bool = True
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        normalized_id = self._normalize_identifier(
+            self.processor_id,
+            "processor_id",
+        )
+        normalized_dependencies = tuple(
+            self._normalize_identifier(value, "dependency")
+            for value in self.depends_on
+        )
+
+        if normalized_id in normalized_dependencies:
+            raise ValueError(
+                f"Pipeline step {normalized_id!r} cannot depend on itself."
+            )
+
+        if len(set(normalized_dependencies)) != len(
+            normalized_dependencies
+        ):
+            raise ValueError(
+                f"Pipeline step {normalized_id!r} contains duplicate "
+                "dependencies."
+            )
+
+        if not isinstance(self.enabled, bool):
+            raise TypeError("PipelineStep enabled must be a bool.")
+
+        if not isinstance(self.required, bool):
+            raise TypeError("PipelineStep required must be a bool.")
+
+        if not isinstance(self.metadata, dict):
+            raise TypeError("PipelineStep metadata must be a dictionary.")
+
+        object.__setattr__(self, "processor_id", normalized_id)
+        object.__setattr__(self, "depends_on", normalized_dependencies)
+        object.__setattr__(self, "metadata", dict(self.metadata))
+
+    @staticmethod
+    def _normalize_identifier(value: str, field_name: str) -> str:
+        if not isinstance(value, str):
+            raise TypeError(
+                f"PipelineStep {field_name} must be a string, "
+                f"received {type(value).__name__}."
+            )
+
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError(
+                f"PipelineStep {field_name} cannot be empty."
+            )
+
+        return normalized
+
+
+@dataclass(slots=True)
+class PipelineExecution:
+    """Execution record produced by RuntimePipeline."""
+
+    pipeline_id: str
+    status: PipelineStatus = PipelineStatus.CREATED
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    ordered_processor_ids: tuple[str, ...] = ()
+    executed_processor_ids: list[str] = field(default_factory=list)
+    skipped_processor_ids: list[str] = field(default_factory=list)
+    failed_processor_ids: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+
+    @property
+    def duration_seconds(self) -> float | None:
+        """Return elapsed execution time when available."""
+        if self.started_at is None:
+            return None
+
+        endpoint = self.completed_at or datetime.now(UTC)
+        return max(
+            0.0,
+            (endpoint - self.started_at).total_seconds(),
+        )
+
+    @property
+    def succeeded(self) -> bool:
+        """Return whether execution completed successfully."""
+        return self.status in {
+            PipelineStatus.COMPLETED,
+            PipelineStatus.COMPLETED_WITH_WARNINGS,
+        }
+
+    @property
+    def has_warnings(self) -> bool:
+        return bool(self.warnings)
+
+    @property
+    def has_errors(self) -> bool:
+        return bool(self.errors)
+
+    def snapshot(self) -> dict[str, Any]:
+        """Return a serializable execution summary."""
+        return {
+            "pipeline_id": self.pipeline_id,
+            "status": self.status.value,
+            "started_at": (
+                self.started_at.isoformat()
+                if self.started_at is not None
+                else None
+            ),
+            "completed_at": (
+                self.completed_at.isoformat()
+                if self.completed_at is not None
+                else None
+            ),
+            "duration_seconds": self.duration_seconds,
+            "ordered_processor_ids": list(
+                self.ordered_processor_ids
+            ),
+            "executed_processor_ids": list(
+                self.executed_processor_ids
+            ),
+            "skipped_processor_ids": list(
+                self.skipped_processor_ids
+            ),
+            "failed_processor_ids": list(
+                self.failed_processor_ids
+            ),
+            "warnings": list(self.warnings),
+            "errors": list(self.errors),
+        }
+
+
+class RuntimePipeline:
+    """
+    Validate, order, and execute processor steps for one RuntimeContext.
+
+    Version 1.0 uses deterministic sequential execution. Dependency ordering
+    is resolved through a stable topological sort that preserves declaration
+    order whenever possible.
+    """
+
+    pipeline_version = "1.0.0"
+
+    def __init__(
+        self,
+        *,
+        pipeline_id: str,
+        steps: Iterable[PipelineStep],
+        failure_policy: PipelineFailurePolicy = (
+            PipelineFailurePolicy.STOP_ON_ERROR
+        ),
+    ) -> None:
+        self._pipeline_id = self._normalize_identifier(
+            pipeline_id,
+            "pipeline identifier",
+        )
+        self._steps = tuple(steps)
+
+        if not self._steps:
+            raise ValueError(
+                "RuntimePipeline requires at least one step."
+            )
+
+        if not all(
+            isinstance(step, PipelineStep)
+            for step in self._steps
+        ):
+            raise TypeError(
+                "RuntimePipeline steps must contain only PipelineStep "
+                "instances."
+            )
+
+        if not isinstance(failure_policy, PipelineFailurePolicy):
+            raise TypeError(
+                "RuntimePipeline failure_policy must be a "
+                "PipelineFailurePolicy."
+            )
+
+        self._failure_policy = failure_policy
+        self._lock = RLock()
+        self._validate_unique_steps()
+
+    @property
+    def pipeline_id(self) -> str:
+        return self._pipeline_id
+
+    @property
+    def steps(self) -> tuple[PipelineStep, ...]:
+        return self._steps
+
+    @property
+    def failure_policy(self) -> PipelineFailurePolicy:
+        return self._failure_policy
+
+    @classmethod
+    def from_context(
+        cls,
+        context: RuntimeContext,
+        *,
+        pipeline_id: str | None = None,
+        failure_policy: PipelineFailurePolicy = (
+            PipelineFailurePolicy.STOP_ON_ERROR
+        ),
+    ) -> "RuntimePipeline":
+        """
+        Build a sequential pipeline from the active profile.
+
+        Profile processor order becomes declaration order. No dependencies are
+        inferred because ProcessorContract v1.0 does not yet declare them.
+        """
+        if not isinstance(context, RuntimeContext):
+            raise TypeError(
+                "RuntimePipeline context must be a RuntimeContext."
+            )
+
+        steps = tuple(
+            PipelineStep(processor_id=processor_id)
+            for processor_id in context.profile.processor_ids
+        )
+
+        return cls(
+            pipeline_id=(
+                pipeline_id
+                or f"{context.profile_id}-pipeline"
+            ),
+            steps=steps,
+            failure_policy=failure_policy,
+        )
+
+    def validate(
+        self,
+        context: RuntimeContext,
+    ) -> tuple[str, ...]:
+        """
+        Validate the pipeline against one RuntimeContext.
+
+        Returns:
+            Deterministically ordered enabled processor identifiers.
+        """
+        if not isinstance(context, RuntimeContext):
+            raise TypeError(
+                "RuntimePipeline context must be a RuntimeContext."
+            )
+
+        enabled_steps = tuple(
+            step for step in self._steps if step.enabled
+        )
+
+        if not enabled_steps:
+            raise RuntimeError(
+                f"Pipeline {self.pipeline_id!r} has no enabled steps."
+            )
+
+        declared_ids = {
+            step.processor_id for step in self._steps
+        }
+
+        for step in enabled_steps:
+            if not context.profile.requires_processor(
+                step.processor_id
+            ):
+                raise ValueError(
+                    f"Processor {step.processor_id!r} is not declared by "
+                    f"profile {context.profile_id!r}."
+                )
+
+            if not context.registry.has_processor(
+                step.processor_id
+            ):
+                raise RuntimeError(
+                    f"Processor {step.processor_id!r} is not registered."
+                )
+
+            missing_dependencies = tuple(
+                dependency
+                for dependency in step.depends_on
+                if dependency not in declared_ids
+            )
+
+            if missing_dependencies:
+                raise ValueError(
+                    f"Pipeline step {step.processor_id!r} references "
+                    f"unknown dependencies: "
+                    f"{', '.join(missing_dependencies)}."
+                )
+
+        return DependencyResolver.resolve(enabled_steps)
+
+    def execute(
+        self,
+        context: RuntimeContext,
+    ) -> PipelineExecution:
+        """
+        Execute all enabled steps sequentially.
+
+        Processor results are stored in RuntimeContext. Metrics use the same
+        keys already established by UAAFRuntime.
+        """
+        with self._lock:
+            execution = PipelineExecution(
+                pipeline_id=self.pipeline_id
+            )
+            execution.status = PipelineStatus.VALIDATING
+
+            ordered_ids = self.validate(context)
+            execution.ordered_processor_ids = ordered_ids
+            execution.status = PipelineStatus.READY
+
+            self._prepare_context(context, ordered_ids)
+
+            execution.started_at = datetime.now(UTC)
+            execution.status = PipelineStatus.RUNNING
+
+            step_map = {
+                step.processor_id: step
+                for step in self._steps
+            }
+
+            for processor_id in ordered_ids:
+                step = step_map[processor_id]
+
+                if self._dependency_failed(
+                    step=step,
+                    execution=execution,
+                ):
+                    execution.skipped_processor_ids.append(
+                        processor_id
+                    )
+                    warning = (
+                        f"Processor {processor_id!r} was skipped because "
+                        "one or more dependencies failed."
+                    )
+                    execution.warnings.append(warning)
+                    context.session.add_warning(warning)
+                    continue
+
+                try:
+                    result = self._execute_step(
+                        context=context,
+                        processor_id=processor_id,
+                    )
+                except Exception as error:
+                    execution.failed_processor_ids.append(
+                        processor_id
+                    )
+                    execution.executed_processor_ids.append(
+                        processor_id
+                    )
+
+                    message = (
+                        f"Processor {processor_id!r} failed: "
+                        f"{type(error).__name__}: {str(error).strip()}"
+                    )
+                    execution.errors.append(message)
+
+                    if (
+                        step.required
+                        and self.failure_policy
+                        is PipelineFailurePolicy.STOP_ON_ERROR
+                    ):
+                        execution.status = PipelineStatus.FAILED
+                        execution.completed_at = datetime.now(UTC)
+                        self._finalize_context(
+                            context=context,
+                            execution=execution,
+                        )
+                        raise
+
+                    continue
+
+                execution.executed_processor_ids.append(
+                    processor_id
+                )
+
+                if result.has_warnings:
+                    execution.warnings.extend(result.warnings)
+
+            execution.completed_at = datetime.now(UTC)
+
+            if execution.failed_processor_ids:
+                required_failed = any(
+                    step_map[processor_id].required
+                    for processor_id
+                    in execution.failed_processor_ids
+                )
+                execution.status = (
+                    PipelineStatus.FAILED
+                    if required_failed
+                    else PipelineStatus.COMPLETED_WITH_WARNINGS
+                )
+            elif execution.has_warnings:
+                execution.status = (
+                    PipelineStatus.COMPLETED_WITH_WARNINGS
+                )
+            else:
+                execution.status = PipelineStatus.COMPLETED
+
+            self._finalize_context(
+                context=context,
+                execution=execution,
+            )
+            return execution
+
+    def snapshot(self) -> dict[str, Any]:
+        """Return a serializable pipeline definition."""
+        return {
+            "pipeline_id": self.pipeline_id,
+            "pipeline_version": self.pipeline_version,
+            "failure_policy": self.failure_policy.value,
+            "steps": [
+                {
+                    "processor_id": step.processor_id,
+                    "depends_on": list(step.depends_on),
+                    "enabled": step.enabled,
+                    "required": step.required,
+                    "metadata": dict(step.metadata),
+                }
+                for step in self.steps
+            ],
+        }
+
+    def _execute_step(
+        self,
+        *,
+        context: RuntimeContext,
+        processor_id: str,
+    ) -> ProcessorResult:
+        if context.has_processor_result(processor_id):
+            raise ValueError(
+                f"Processor {processor_id!r} has already been executed."
+            )
+
+        processor = context.registry.create_processor(
+            processor_id
+        )
+
+        try:
+            result = processor.run(context.session)
+        except Exception:
+            self._capture_failed_result(
+                context=context,
+                processor_id=processor_id,
+            )
+            context.increment_metric("processors_executed")
+            context.increment_metric("processors_failed")
+            raise
+
+        context.add_processor_result(result)
+        context.increment_metric("processors_executed")
+        context.increment_metric("processors_succeeded")
+
+        if result.has_warnings:
+            context.increment_metric(
+                "processors_with_warnings"
+            )
+
+        return result
+
+    @staticmethod
+    def _capture_failed_result(
+        *,
+        context: RuntimeContext,
+        processor_id: str,
+    ) -> None:
+        result = context.session.get_context(
+            f"processor_result:{processor_id}"
+        )
+
+        if isinstance(result, ProcessorResult):
+            context.add_processor_result(
+                result,
+                replace=True,
+            )
+
+    @staticmethod
+    def _dependency_failed(
+        *,
+        step: PipelineStep,
+        execution: PipelineExecution,
+    ) -> bool:
+        failed = set(execution.failed_processor_ids)
+        skipped = set(execution.skipped_processor_ids)
+
+        return any(
+            dependency in failed or dependency in skipped
+            for dependency in step.depends_on
+        )
+
+    def _prepare_context(
+        self,
+        context: RuntimeContext,
+        ordered_ids: tuple[str, ...],
+    ) -> None:
+        context.set_metadata(
+            "pipeline_id",
+            self.pipeline_id,
+        )
+        context.set_metadata(
+            "pipeline_version",
+            self.pipeline_version,
+        )
+        context.set_metadata(
+            "pipeline_failure_policy",
+            self.failure_policy.value,
+        )
+        context.set_metric(
+            "processors_expected",
+            len(ordered_ids),
+        )
+
+        for metric_name in (
+            "processors_executed",
+            "processors_succeeded",
+            "processors_failed",
+            "processors_with_warnings",
+        ):
+            if context.get_metric(metric_name) is None:
+                context.set_metric(metric_name, 0)
+
+    @staticmethod
+    def _finalize_context(
+        *,
+        context: RuntimeContext,
+        execution: PipelineExecution,
+    ) -> None:
+        context.set_metadata(
+            "pipeline_status",
+            execution.status.value,
+        )
+        context.set_metadata(
+            "pipeline_execution",
+            execution.snapshot(),
+        )
+        context.set_metric(
+            "pipeline_duration_seconds",
+            execution.duration_seconds or 0.0,
+        )
+        context.set_metric(
+            "processors_skipped",
+            len(execution.skipped_processor_ids),
+        )
+
+    def _validate_unique_steps(self) -> None:
+        processor_ids = [
+            step.processor_id for step in self._steps
+        ]
+
+        if len(set(processor_ids)) != len(processor_ids):
+            duplicates = sorted(
+                processor_id
+                for processor_id in set(processor_ids)
+                if processor_ids.count(processor_id) > 1
+            )
+            raise ValueError(
+                "RuntimePipeline contains duplicate processor steps: "
+                f"{', '.join(duplicates)}."
+            )
+
+    @staticmethod
+    def _normalize_identifier(
+        value: str,
+        field_name: str,
+    ) -> str:
+        if not isinstance(value, str):
+            raise TypeError(
+                f"RuntimePipeline {field_name} must be a string, "
+                f"received {type(value).__name__}."
+            )
+
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError(
+                f"RuntimePipeline {field_name} cannot be empty."
+            )
+
+        return normalized
+
+
+__all__ = [
+    "PipelineExecution",
+    "PipelineFailurePolicy",
+    "PipelineStatus",
+    "PipelineStep",
+    "RuntimePipeline",
+]

@@ -1,0 +1,87 @@
+"""
+UAAF Commit 0014 - Module Index Builder
+
+This patch generator will extend the Architecture Auditor with a deterministic
+module and package index derived from the Python file inventory introduced by
+Commit 0013.
+
+Construction status:
+    - 0014A: base generator skeleton
+    - 0014B+: Patch Engine integration and Architecture Auditor transformation
+"""
+
+from __future__ import annotations
+
+import ast
+import py_compile
+import sys
+from pathlib import Path
+from typing import Any
+
+
+SCRIPT_FILE = Path(__file__).resolve()
+PROJECT_ROOT = SCRIPT_FILE.parents[2]
+
+TARGET = (
+    PROJECT_ROOT
+    / "plugins"
+    / "architecture"
+    / "architecture_auditor.py"
+)
+
+PATCH_ID = "uaaf-commit-0014-module-index-builder"
+PATCH_TITLE = "UAAF Commit 0014 - Module Index Builder"
+
+
+SCRIPTS_ROOT = SCRIPT_FILE.parents[1]
+
+if str(SCRIPTS_ROOT) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_ROOT))
+
+
+from uaaf_tools.patch_engine import (  # noqa: E402
+    PatchEngine,
+    PatchOperation,
+    PatchOperationType,
+    PatchPlan,
+    PatchStatus,
+)
+
+
+PATCH_VERSION = "1.0.0"
+
+# PATCH-0014B-APPLIED
+
+
+
+PATCH_ID = "uaaf-commit-0014-architecture-module-index"
+PATCH_NAME = "Add Architecture Auditor module index"
+TARGET_FILE = TARGET
+
+
+# PATCH-0014D-OLD-SOURCE-ANCHOR
+
+
+# PATCH-0014E-NEW-SOURCE-PART-1-ANCHOR
+
+
+# PATCH-0014F-NEW-SOURCE-PART-2-ANCHOR
+
+
+# PATCH-0014G-PATCH-PLAN-ANCHOR
+
+
+# PATCH-0014C-APPLIED
+
+
+
+def main() -> int:
+    """Execute the completed Commit 0014 patch generator."""
+    raise RuntimeError(
+        "Commit 0014 generator construction is incomplete. "
+        "Apply the remaining 0014 construction patches before execution."
+    )
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

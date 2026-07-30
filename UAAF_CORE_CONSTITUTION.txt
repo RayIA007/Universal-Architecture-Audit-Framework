@@ -1,0 +1,54 @@
+UAAF_CORE_CONSTITUTION.md
+
+PARTE I
+Fundamentos
+
+1. Control del Documento
+2. Propósito
+3. Alcance
+4. Orden Jerárquico
+5. Definiciones
+
+──────────────────────────
+
+PARTE II
+Identidad
+
+6. Naturaleza del Framework
+7. Identidad Permanente
+8. Misión
+9. Visión
+10. Objetivos Estratégicos
+
+──────────────────────────
+
+PARTE III
+Valores
+
+11. Valores Permanentes
+
+──────────────────────────
+
+PARTE IV
+Principios
+
+12. Principios Fundamentales
+
+──────────────────────────
+
+PARTE V
+Gobernanza
+
+13. Autoridad
+14. Evolución
+15. Compatibilidad
+16. Responsabilidades
+
+──────────────────────────
+
+PARTE VI
+Disposiciones Finales
+
+17. Vigencia
+18. Modificaciones
+19. Anexos

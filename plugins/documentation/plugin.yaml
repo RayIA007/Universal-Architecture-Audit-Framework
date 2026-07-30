@@ -1,0 +1,4 @@
+plugin_id: documentation-auditor
+name: Documentation Auditor
+version: 1.0.0
+entrypoint: plugin.py

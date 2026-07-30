@@ -1,0 +1,53 @@
+C:\Universal Architecture Audit Framework (UAAF)
+│
+├── 00_DOCUMENTATION
+│   │
+│   ├── 01_GOVERNANCE
+│   │   ├── UAAF_CORE_CONSTITUTION.md
+│   │   ├── UAAF_DOCUMENT_HIERARCHY.md
+│   │   ├── UAAF_GOVERNANCE_MODEL.md
+│   │   ├── UAAF_LANGUAGE_STANDARD.md
+│   │   └── UAAF_ENGINEERING_STANDARD.md
+│   │
+│   ├── 02_ARCHITECTURE
+│   │   ├── UAAF_CORE_ARCHITECTURE.md
+│   │   ├── UAAF_ARCHITECTURE_STANDARD.md
+│   │   ├── UAAF_LAYERED_ARCHITECTURE.md
+│   │   ├── UAAF_RUNTIME_ARCHITECTURE.md
+│   │   ├── UAAF_PIPELINE_ARCHITECTURE.md
+│   │   ├── UAAF_PLUGIN_ARCHITECTURE.md
+│   │   ├── UAAF_DATA_MODEL.md
+│   │   ├── UAAF_COMPONENT_CATALOG.md
+│   │   ├── UAAF_DATA_FLOW.md
+│   │   └── UAAF_SECURITY_MODEL.md
+│   │
+│   ├── 03_METHODOLOGY
+│   │   ├── UAAF_AUDIT_METHODOLOGY.md
+│   │   ├── UAAF_SCORING_METHODOLOGY.md
+│   │   ├── UAAF_FINDING_TAXONOMY.md
+│   │   ├── UAAF_EVIDENCE_STANDARD.md
+│   │   ├── UAAF_TRACEABILITY_STANDARD.md
+│   │   └── UAAF_REPORT_STANDARD.md
+│   │
+│   └── 04_PLANNING
+│       ├── UAAF_IMPLEMENTATION_PLAN.md
+│       ├── UAAF_TEST_STRATEGY.md
+│       ├── UAAF_ACCEPTANCE_CRITERIA.md
+│       └── UAAF_ROADMAP.md
+│
+├── 02_SCHEMAS
+│   ├── project_manifest.schema.json
+│   ├── audit_profile.schema.json
+│   ├── audit_run.schema.json
+│   ├── audit_rule.schema.json
+│   ├── audit_finding.schema.json
+│   ├── audit_evidence.schema.json
+│   ├── audit_score.schema.json
+│   └── audit_report.schema.json
+│
+└── 90_SPECIFICATIONS
+    ├── UAAF_CORE_SPECIFICATION.md
+    ├── UAAF_DOMAIN_MODEL.md
+    ├── UAAF_CONTRACT_CATALOG.md
+    ├── UAAF_PLUGIN_CONTRACT.md
+    └── UAAF_MVP_SPECIFICATION.md

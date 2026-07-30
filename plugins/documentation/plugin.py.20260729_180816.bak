@@ -1,0 +1,109 @@
+"""
+Functional Documentation Auditor MVP.
+
+The plugin scans a project directory, counts files, identifies Markdown files,
+and returns a structured audit result.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any
+
+
+IGNORED_DIRECTORY_NAMES = {
+    ".git",
+    ".hg",
+    ".svn",
+    "__pycache__",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".venv",
+    "venv",
+    "node_modules",
+}
+
+
+def run(context: Any) -> dict[str, Any]:
+    """Scan the target project and return a basic documentation audit."""
+    project_path = _resolve_project_path(context)
+
+    files_scanned = 0
+    markdown_files: list[str] = []
+    errors: list[str] = []
+
+    for path in project_path.rglob("*"):
+        if _is_ignored(path, project_path):
+            continue
+
+        if not path.is_file():
+            continue
+
+        files_scanned += 1
+
+        if path.suffix.lower() not in {".md", ".markdown"}:
+            continue
+
+        try:
+            path.read_text(encoding="utf-8")
+        except (OSError, UnicodeError) as exc:
+            errors.append(
+                f"{path.relative_to(project_path)}: {exc}"
+            )
+            continue
+
+        markdown_files.append(
+            path.relative_to(project_path).as_posix()
+        )
+
+    return {
+        "plugin_id": "documentation-auditor",
+        "status": "completed_with_errors" if errors else "completed",
+        "project_path": str(project_path),
+        "files_scanned": files_scanned,
+        "markdown_files": sorted(markdown_files),
+        "markdown_file_count": len(markdown_files),
+        "errors": errors,
+    }
+
+
+def _resolve_project_path(context: Any) -> Path:
+    if not isinstance(context, dict):
+        raise TypeError("context must be a dictionary.")
+
+    raw_project_path = context.get("project_path")
+
+    if not isinstance(raw_project_path, (str, Path)):
+        raise ValueError(
+            "context must contain a valid project_path."
+        )
+
+    project_path = Path(raw_project_path).resolve()
+
+    if not project_path.is_dir():
+        raise FileNotFoundError(
+            f"Project directory not found: {project_path}"
+        )
+
+    return project_path
+
+
+def _is_ignored(path: Path, project_path: Path) -> bool:
+    relative_parts = path.relative_to(project_path).parts
+    return any(
+        part in IGNORED_DIRECTORY_NAMES
+        for part in relative_parts
+    )
+
+
+class DocumentationAuditorPlugin:
+    """Compatibility wrapper around the functional plugin contract."""
+
+    def execute(self, context: Any) -> dict[str, Any]:
+        return run(context)
+
+
+__all__ = [
+    "DocumentationAuditorPlugin",
+    "run",
+]

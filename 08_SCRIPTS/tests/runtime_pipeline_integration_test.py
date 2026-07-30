@@ -1,0 +1,171 @@
+"""
+Integration test for UAAFRuntime + RuntimePipeline.
+
+Run from the UAAF project root:
+
+    python 08_SCRIPTS/tests/runtime_pipeline_integration_test.py
+"""
+
+from __future__ import annotations
+
+import shutil
+import sys
+from pathlib import Path
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+SCRIPTS_ROOT = PROJECT_ROOT / "08_SCRIPTS"
+sys.path.insert(0, str(SCRIPTS_ROOT))
+
+from uaaf_core.contracts.processor import ProcessorContract
+from uaaf_core.kernel import UAAFKernel
+from uaaf_core.models.enums import AuditDomain, ComplianceLevel, SessionStatus
+from uaaf_core.models.profile import AuditProfile
+from uaaf_core.registry import UAAFRegistry
+
+
+class DocumentationProcessor(ProcessorContract):
+    processor_id = "documentation-processor"
+    processor_version = "1.0.0"
+    processor_description = "Documentation integration processor."
+
+    def validate(self, session) -> None:
+        if not session.status is SessionStatus.RUNNING:
+            raise RuntimeError("Session must be running.")
+
+    def execute(self, session) -> None:
+        self.add_output("documents_analyzed", 4)
+
+
+class ArchitectureProcessor(ProcessorContract):
+    processor_id = "architecture-processor"
+    processor_version = "1.0.0"
+    processor_description = "Architecture integration processor."
+
+    def validate(self, session) -> None:
+        if not session.status is SessionStatus.RUNNING:
+            raise RuntimeError("Session must be running.")
+
+    def execute(self, session) -> None:
+        self.add_output("components_analyzed", 9)
+        self.add_warning("One architecture record is missing.")
+
+
+def require(condition: bool, message: str) -> None:
+    if not condition:
+        raise AssertionError(message)
+
+
+def main() -> int:
+    test_root = (
+        PROJECT_ROOT
+        / "07_OUTPUTS"
+        / "runtime_pipeline_integration_test"
+    )
+
+    if test_root.exists():
+        shutil.rmtree(test_root)
+
+    registry = UAAFRegistry()
+    registry.register_processor(DocumentationProcessor)
+    registry.register_processor(ArchitectureProcessor)
+
+    profile = AuditProfile(
+        profile_id="generic-project",
+        name="Generic Project Audit",
+        version="1.0.0",
+        compliance_level=ComplianceLevel.CORE,
+        domains=(
+            AuditDomain.DOCUMENTATION,
+            AuditDomain.ARCHITECTURE,
+        ),
+        processor_ids=(
+            "documentation-processor",
+            "architecture-processor",
+        ),
+    )
+    registry.register_profile(profile)
+
+    kernel = UAAFKernel(registry=registry)
+
+    runtime = kernel.create_runtime(
+        target_path=PROJECT_ROOT,
+        profile_id="generic-project",
+        output_path=test_root / "outputs",
+        workspace_path=test_root / "workspace",
+        audit_metadata={
+            "requested_by": "pipeline-integration-test",
+        },
+        runtime_metadata={
+            "environment": "test",
+        },
+    )
+
+    results = runtime.run()
+    context = runtime.context
+
+    require(
+        context.get_metadata("pipeline_id")
+        == "generic-project-pipeline",
+        "Pipeline identifier metadata is missing.",
+    )
+    require(
+        context.get_metadata("pipeline_version") == "1.0.0",
+        "Pipeline version metadata is missing.",
+    )
+    require(
+        context.get_metadata("pipeline_status")
+        == "completed_with_warnings",
+        "Unexpected pipeline status.",
+    )
+    require(
+        context.get_metric("processors_executed") == 2,
+        "processors_executed must be 2.",
+    )
+    require(
+        context.get_metric("processors_succeeded") == 2,
+        "processors_succeeded must be 2.",
+    )
+    require(
+        context.get_metric("processors_failed") == 0,
+        "processors_failed must be 0.",
+    )
+    require(
+        context.get_metric("processors_with_warnings") == 1,
+        "processors_with_warnings must be 1.",
+    )
+    require(
+        len(results) == 2,
+        "runtime.run() must return two processor results.",
+    )
+    require(
+        runtime.audit_id == context.audit_id,
+        "Runtime and context audit identifiers differ.",
+    )
+    require(
+        runtime.is_terminal,
+        "Runtime must be terminal after run().",
+    )
+
+    execution = context.get_metadata("pipeline_execution")
+
+    print(context.audit.status.value)
+    print(context.session.status.value)
+    print(execution["pipeline_id"])
+    print(execution["status"])
+    print(execution["executed_processor_ids"])
+    print([result.status.value for result in results])
+    print(context.get_metric("processors_expected"))
+    print(context.get_metric("processors_executed"))
+    print(context.get_metric("processors_succeeded"))
+    print(context.get_metric("processors_failed"))
+    print(context.get_metric("processors_with_warnings"))
+    print(context.get_metadata("pipeline_version"))
+    print(runtime.is_terminal)
+    print("[PASS] RuntimePipeline integration test completed.")
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,141 @@
+"""
+End-to-end smoke test for the functional Documentation Auditor MVP.
+"""
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+
+SCRIPT_FILE = Path(__file__).resolve()
+PROJECT_ROOT = SCRIPT_FILE.parents[2]
+SCRIPTS_ROOT = PROJECT_ROOT / "08_SCRIPTS"
+
+if str(SCRIPTS_ROOT) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_ROOT))
+
+from uaaf_core.audit.audit_orchestrator import AuditOrchestrator
+
+
+def main() -> int:
+    context = {
+        "project_path": str(PROJECT_ROOT),
+        "audit_type": "documentation",
+    }
+
+    orchestrator = AuditOrchestrator(PROJECT_ROOT / "plugins")
+    result = orchestrator.run(
+        "documentation-auditor",
+        context,
+    )
+
+    assert isinstance(result, dict)
+    assert result["plugin_id"] == "documentation-auditor"
+    assert result["status"] in {
+        "completed",
+        "completed_with_findings",
+    }
+    assert result["project_path"] == str(PROJECT_ROOT.resolve())
+
+    assert isinstance(result["files_scanned"], int)
+    assert result["files_scanned"] >= 1
+
+    assert isinstance(result["markdown_files"], list)
+    assert isinstance(result["markdown_file_count"], int)
+    assert result["markdown_file_count"] == len(
+        result["markdown_files"]
+    )
+
+    assert isinstance(result["total_markdown_lines"], int)
+    assert result["total_markdown_lines"] >= 0
+
+    assert isinstance(result["total_markdown_words"], int)
+    assert result["total_markdown_words"] >= 0
+
+    assert isinstance(result["empty_markdown_files"], list)
+    assert isinstance(result["empty_markdown_file_count"], int)
+    assert result["empty_markdown_file_count"] == len(
+        result["empty_markdown_files"]
+    )
+
+    assert isinstance(result["markdown_files_without_h1"], list)
+    assert isinstance(
+        result["markdown_files_without_h1_count"],
+        int,
+    )
+    assert result["markdown_files_without_h1_count"] == len(
+        result["markdown_files_without_h1"]
+    )
+
+    assert isinstance(result["findings"], list)
+    assert isinstance(result["findings_count"], int)
+    assert result["findings_count"] == (
+        len(result["findings"])
+        + len(result["errors"])
+    )
+
+    allowed_codes = {
+        "DOC_EMPTY_FILE",
+        "DOC_MISSING_H1",
+    }
+
+    for finding in result["findings"]:
+        assert isinstance(finding, dict)
+        assert set(finding) == {
+            "code",
+            "severity",
+            "path",
+            "message",
+        }
+        assert finding["code"] in allowed_codes
+        assert finding["severity"] == "warning"
+        assert isinstance(finding["path"], str)
+        assert finding["path"]
+        assert isinstance(finding["message"], str)
+        assert finding["message"]
+
+    empty_file_findings = [
+        finding
+        for finding in result["findings"]
+        if finding["code"] == "DOC_EMPTY_FILE"
+    ]
+
+    missing_h1_findings = [
+        finding
+        for finding in result["findings"]
+        if finding["code"] == "DOC_MISSING_H1"
+    ]
+
+    assert len(empty_file_findings) == (
+        result["empty_markdown_file_count"]
+    )
+    assert len(missing_h1_findings) == (
+        result["markdown_files_without_h1_count"]
+    )
+
+    assert isinstance(result["errors"], list)
+
+    if result["findings_count"] == 0:
+        assert result["status"] == "completed"
+    else:
+        assert result["status"] == "completed_with_findings"
+
+    print(result["plugin_id"])
+    print(result["status"])
+    print(result["files_scanned"])
+    print(result["markdown_file_count"])
+    print(result["total_markdown_lines"])
+    print(result["total_markdown_words"])
+    print(result["empty_markdown_file_count"])
+    print(result["markdown_files_without_h1_count"])
+    print(len(result["findings"]))
+    print(result["findings_count"])
+    print(len(result["errors"]))
+    print("[PASS] Audit Orchestrator smoke test completed.")
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

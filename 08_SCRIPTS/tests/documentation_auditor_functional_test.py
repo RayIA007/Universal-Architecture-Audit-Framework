@@ -1,0 +1,174 @@
+"""
+Deterministic functional test for the Documentation Auditor.
+
+The test builds an isolated temporary project so every supported finding can
+be validated without depending on the contents of the UAAF repository.
+"""
+
+from __future__ import annotations
+
+import sys
+import tempfile
+from pathlib import Path
+
+
+SCRIPT_FILE = Path(__file__).resolve()
+PROJECT_ROOT = SCRIPT_FILE.parents[2]
+SCRIPTS_ROOT = PROJECT_ROOT / "08_SCRIPTS"
+
+if str(SCRIPTS_ROOT) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_ROOT))
+
+from uaaf_core.audit.audit_orchestrator import AuditOrchestrator
+
+
+def main() -> int:
+    with tempfile.TemporaryDirectory(
+        prefix="uaaf_documentation_auditor_"
+    ) as temporary_directory:
+        fixture_root = Path(temporary_directory)
+
+        _create_fixture(fixture_root)
+
+        orchestrator = AuditOrchestrator(
+            PROJECT_ROOT / "plugins"
+        )
+        result = orchestrator.run(
+            "documentation-auditor",
+            {
+                "project_path": str(fixture_root),
+                "audit_type": "documentation",
+            },
+        )
+
+        _assert_result(result, fixture_root)
+
+    print("documentation-auditor")
+    print("completed_with_findings")
+    print("4")
+    print("3")
+    print("1")
+    print("1")
+    print("2")
+    print("[PASS] Documentation Auditor functional test completed.")
+
+    return 0
+
+
+def _create_fixture(fixture_root: Path) -> None:
+    (fixture_root / "docs").mkdir(parents=True)
+    (fixture_root / "node_modules").mkdir()
+
+    (fixture_root / "README.md").write_text(
+        "# Fixture Project\n\nValid documentation file.\n",
+        encoding="utf-8",
+    )
+
+    (fixture_root / "docs" / "empty.md").write_text(
+        "",
+        encoding="utf-8",
+    )
+
+    (fixture_root / "docs" / "missing-h1.markdown").write_text(
+        "Documentation without a level-one heading.\n",
+        encoding="utf-8",
+    )
+
+    (fixture_root / "application.py").write_text(
+        "print('fixture')\n",
+        encoding="utf-8",
+    )
+
+    (fixture_root / "node_modules" / "ignored.md").write_text(
+        "",
+        encoding="utf-8",
+    )
+
+
+def _assert_result(
+    result: dict[str, object],
+    fixture_root: Path,
+) -> None:
+    required_keys = {
+        "plugin_id",
+        "plugin_version",
+        "audit_type",
+        "status",
+        "summary",
+        "metrics",
+        "findings",
+        "errors",
+        "execution",
+    }
+    assert required_keys.issubset(result)
+
+    assert result["plugin_id"] == "documentation-auditor"
+    assert result["plugin_version"] == "1.0.0"
+    assert result["audit_type"] == "documentation"
+    assert result["status"] == "completed_with_findings"
+
+    summary = result["summary"]
+    assert isinstance(summary, dict)
+    assert summary["project_path"] == str(fixture_root.resolve())
+    assert summary["markdown_files"] == [
+        "README.md",
+        "docs/empty.md",
+        "docs/missing-h1.markdown",
+    ]
+    assert summary["empty_markdown_files"] == [
+        "docs/empty.md",
+    ]
+    assert summary["markdown_files_without_h1"] == [
+        "docs/missing-h1.markdown",
+    ]
+    assert "node_modules/ignored.md" not in summary["markdown_files"]
+
+    metrics = result["metrics"]
+    assert isinstance(metrics, dict)
+    assert metrics["files_scanned"] == 4
+    assert metrics["markdown_file_count"] == 3
+    assert metrics["total_markdown_lines"] == 4
+    assert metrics["total_markdown_words"] == 11
+    assert metrics["empty_markdown_file_count"] == 1
+    assert metrics["markdown_files_without_h1_count"] == 1
+    assert metrics["findings_count"] == 2
+
+    assert result["errors"] == []
+
+    findings = result["findings"]
+    assert isinstance(findings, list)
+
+    findings_by_code = {
+        finding["code"]: finding
+        for finding in findings
+    }
+
+    assert set(findings_by_code) == {
+        "DOC_EMPTY_FILE",
+        "DOC_MISSING_H1",
+    }
+
+    assert findings_by_code["DOC_EMPTY_FILE"] == {
+        "code": "DOC_EMPTY_FILE",
+        "severity": "warning",
+        "path": "docs/empty.md",
+        "message": "Markdown file is empty.",
+        "details": {},
+    }
+
+    assert findings_by_code["DOC_MISSING_H1"] == {
+        "code": "DOC_MISSING_H1",
+        "severity": "warning",
+        "path": "docs/missing-h1.markdown",
+        "message": (
+            "Markdown file does not contain a level-one heading."
+        ),
+        "details": {},
+    }
+
+    execution = result["execution"]
+    assert isinstance(execution, dict)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

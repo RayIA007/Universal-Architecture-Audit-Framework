@@ -1,0 +1,89 @@
+"""
+Audit Orchestrator.
+
+Discovers an auditor plugin, loads its runtime module, executes run(context),
+and enforces the canonical Audit Result Contract before returning the result.
+"""
+
+from __future__ import annotations
+
+import importlib.util
+from pathlib import Path
+from types import ModuleType
+from typing import Any
+
+from uaaf_core.audit.audit_result import validate_audit_result
+from uaaf_core.plugins.plugin_manager import PluginManager
+
+
+class AuditOrchestrator:
+    """Execute registered audit plugins through the Plugin Manager."""
+
+    def __init__(self, plugins_root: str | Path) -> None:
+        self.plugins_root = Path(plugins_root).resolve()
+        self.plugin_manager = PluginManager(self.plugins_root)
+
+    def run(
+        self,
+        plugin_id: str,
+        context: Any,
+    ) -> dict[str, Any]:
+        """Execute one plugin and enforce the canonical result contract."""
+        descriptor = self.plugin_manager.get_plugin(plugin_id)
+        module_path = self.plugins_root / descriptor.path
+
+        module = self._load_module(
+            plugin_id=plugin_id,
+            module_path=module_path,
+        )
+
+        run_callable = getattr(module, "run", None)
+
+        if not callable(run_callable):
+            raise AttributeError(
+                f"Plugin {plugin_id!r} does not expose callable run(context)."
+            )
+
+        result = run_callable(context)
+
+        try:
+            validate_audit_result(result)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                f"Plugin {plugin_id!r} returned an invalid "
+                f"Audit Result Contract: {exc}"
+            ) from exc
+
+        return result
+
+    @staticmethod
+    def _load_module(
+        *,
+        plugin_id: str,
+        module_path: Path,
+    ) -> ModuleType:
+        if not module_path.is_file():
+            raise FileNotFoundError(
+                f"Plugin runtime module not found: {module_path}"
+            )
+
+        safe_plugin_id = plugin_id.replace("-", "_")
+        module_name = f"uaaf_plugin_{safe_plugin_id}"
+
+        spec = importlib.util.spec_from_file_location(
+            module_name,
+            module_path,
+        )
+
+        if spec is None or spec.loader is None:
+            raise ImportError(
+                f"Unable to create module specification for: {module_path}"
+            )
+
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        return module
+
+
+__all__ = ["AuditOrchestrator"]

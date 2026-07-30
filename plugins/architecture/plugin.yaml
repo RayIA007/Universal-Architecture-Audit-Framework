@@ -1,0 +1,4 @@
+plugin_id: architecture-auditor
+name: Architecture Auditor
+version: 1.0.0
+entrypoint: architecture_auditor.py

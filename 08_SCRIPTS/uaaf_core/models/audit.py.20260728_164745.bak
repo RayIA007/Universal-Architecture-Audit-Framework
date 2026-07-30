@@ -1,0 +1,403 @@
+"""
+Audit domain model for the Universal Architecture Audit Framework.
+
+This module defines the canonical representation of a UAAF audit. The model
+stores audit identity, target information, lifecycle timestamps, status, and
+basic execution metadata.
+
+Runtime orchestration, processor execution, persistence, serialization, and
+report generation are intentionally outside this module.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any
+from uuid import UUID, uuid4
+
+from uaaf_core.models.enums import AuditStatus
+
+
+@dataclass(slots=True)
+class Audit:
+    """
+    Represent a complete UAAF audit.
+
+    An Audit identifies the project being evaluated, the profile selected for
+    the execution, the destination of generated artifacts, and the current
+    audit lifecycle state.
+
+    Attributes:
+        target_path:
+            Local path of the project or resource being audited.
+        profile_id:
+            Identifier of the audit profile used for the execution.
+        output_path:
+            Directory where audit artifacts will be generated.
+        audit_id:
+            Unique identifier assigned to the audit.
+        status:
+            Current lifecycle status.
+        created_at:
+            UTC timestamp at which the audit was created.
+        started_at:
+            UTC timestamp at which execution started.
+        completed_at:
+            UTC timestamp at which execution ended.
+        metadata:
+            Additional audit-level information.
+        failure_reason:
+            Human-readable reason when the audit fails.
+    """
+
+    target_path: Path
+    profile_id: str
+    output_path: Path
+
+    audit_id: UUID = field(default_factory=uuid4)
+    status: AuditStatus = AuditStatus.CREATED
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
+    failure_reason: str | None = None
+
+    def __post_init__(self) -> None:
+        """Normalize and validate the minimum audit state."""
+        self.target_path = Path(self.target_path)
+        self.output_path = Path(self.output_path)
+
+        if not isinstance(self.profile_id, str):
+            raise TypeError(
+                "Audit profile_id must be a string, "
+                f"received {type(self.profile_id).__name__}."
+            )
+
+        self.profile_id = self.profile_id.strip()
+
+        if not self.profile_id:
+            raise ValueError("Audit profile_id cannot be empty.")
+
+        if not isinstance(self.audit_id, UUID):
+            raise TypeError(
+                "Audit audit_id must be a UUID instance, "
+                f"received {type(self.audit_id).__name__}."
+            )
+
+        if not isinstance(self.status, AuditStatus):
+            raise TypeError(
+                "Audit status must be an AuditStatus instance, "
+                f"received {type(self.status).__name__}."
+            )
+
+        self.created_at = self._normalize_datetime(
+            value=self.created_at,
+            field_name="created_at",
+        )
+
+        if self.started_at is not None:
+            self.started_at = self._normalize_datetime(
+                value=self.started_at,
+                field_name="started_at",
+            )
+
+        if self.completed_at is not None:
+            self.completed_at = self._normalize_datetime(
+                value=self.completed_at,
+                field_name="completed_at",
+            )
+
+        if not isinstance(self.metadata, dict):
+            raise TypeError(
+                "Audit metadata must be a dictionary, "
+                f"received {type(self.metadata).__name__}."
+            )
+
+        if self.failure_reason is not None:
+            if not isinstance(self.failure_reason, str):
+                raise TypeError(
+                    "Audit failure_reason must be a string or None, "
+                    f"received {type(self.failure_reason).__name__}."
+                )
+
+            self.failure_reason = self.failure_reason.strip() or None
+
+        self._validate_timestamp_order()
+
+    @property
+    def id(self) -> str:
+        """Return the audit identifier as a canonical string."""
+        return str(self.audit_id)
+
+    @property
+    def is_terminal(self) -> bool:
+        """Return whether the audit has reached a terminal status."""
+        return self.status in {
+            AuditStatus.COMPLETED,
+            AuditStatus.COMPLETED_WITH_WARNINGS,
+            AuditStatus.FAILED,
+            AuditStatus.CANCELLED,
+        }
+
+    @property
+    def duration_seconds(self) -> float | None:
+        """
+        Return the elapsed execution time in seconds.
+
+        Returns:
+            None when execution has not started.
+            Elapsed seconds until completion when the audit is terminal.
+            Elapsed seconds until the current time while execution is active.
+        """
+        if self.started_at is None:
+            return None
+
+        end_time = self.completed_at or datetime.now(UTC)
+        return max(0.0, (end_time - self.started_at).total_seconds())
+
+    def mark_initializing(self) -> None:
+        """Move the audit from CREATED to INITIALIZING."""
+        self._transition(
+            expected={AuditStatus.CREATED},
+            new_status=AuditStatus.INITIALIZING,
+        )
+
+    def mark_ready(self) -> None:
+        """Move the audit from INITIALIZING to READY."""
+        self._transition(
+            expected={AuditStatus.INITIALIZING},
+            new_status=AuditStatus.READY,
+        )
+
+    def mark_running(self, *, started_at: datetime | None = None) -> None:
+        """
+        Mark the audit as running.
+
+        Args:
+            started_at:
+                Optional explicit UTC-compatible start timestamp.
+        """
+        self._transition(
+            expected={AuditStatus.READY},
+            new_status=AuditStatus.RUNNING,
+        )
+
+        self.started_at = self._normalize_datetime(
+            value=started_at or datetime.now(UTC),
+            field_name="started_at",
+        )
+        self.completed_at = None
+        self.failure_reason = None
+
+    def mark_completed(
+        self,
+        *,
+        with_warnings: bool = False,
+        completed_at: datetime | None = None,
+    ) -> None:
+        """
+        Mark the audit as successfully completed.
+
+        Args:
+            with_warnings:
+                Whether the execution completed with non-critical warnings.
+            completed_at:
+                Optional explicit UTC-compatible completion timestamp.
+        """
+        new_status = (
+            AuditStatus.COMPLETED_WITH_WARNINGS
+            if with_warnings
+            else AuditStatus.COMPLETED
+        )
+
+        self._transition(
+            expected={AuditStatus.RUNNING},
+            new_status=new_status,
+        )
+
+        self.completed_at = self._normalize_datetime(
+            value=completed_at or datetime.now(UTC),
+            field_name="completed_at",
+        )
+        self.failure_reason = None
+        self._validate_timestamp_order()
+
+    def mark_failed(
+        self,
+        reason: str,
+        *,
+        completed_at: datetime | None = None,
+    ) -> None:
+        """
+        Mark the audit as failed.
+
+        Args:
+            reason:
+                Human-readable failure reason.
+            completed_at:
+                Optional explicit UTC-compatible completion timestamp.
+
+        Raises:
+            TypeError:
+                If reason is not a string.
+            ValueError:
+                If reason is empty or the audit is already terminal.
+        """
+        if not isinstance(reason, str):
+            raise TypeError(
+                "Audit failure reason must be a string, "
+                f"received {type(reason).__name__}."
+            )
+
+        normalized_reason = reason.strip()
+
+        if not normalized_reason:
+            raise ValueError("Audit failure reason cannot be empty.")
+
+        self._transition(
+            expected={
+                AuditStatus.CREATED,
+                AuditStatus.INITIALIZING,
+                AuditStatus.READY,
+                AuditStatus.RUNNING,
+            },
+            new_status=AuditStatus.FAILED,
+        )
+
+        self.completed_at = self._normalize_datetime(
+            value=completed_at or datetime.now(UTC),
+            field_name="completed_at",
+        )
+        self.failure_reason = normalized_reason
+        self._validate_timestamp_order()
+
+    def mark_cancelled(
+        self,
+        *,
+        completed_at: datetime | None = None,
+    ) -> None:
+        """
+        Mark the audit as cancelled.
+
+        Args:
+            completed_at:
+                Optional explicit UTC-compatible cancellation timestamp.
+        """
+        self._transition(
+            expected={
+                AuditStatus.CREATED,
+                AuditStatus.INITIALIZING,
+                AuditStatus.READY,
+                AuditStatus.RUNNING,
+            },
+            new_status=AuditStatus.CANCELLED,
+        )
+
+        self.completed_at = self._normalize_datetime(
+            value=completed_at or datetime.now(UTC),
+            field_name="completed_at",
+        )
+        self.failure_reason = None
+        self._validate_timestamp_order()
+
+    def set_metadata(self, key: str, value: Any) -> None:
+        """
+        Add or replace one audit metadata value.
+
+        Args:
+            key:
+                Non-empty metadata key.
+            value:
+                Metadata value.
+
+        Raises:
+            TypeError:
+                If key is not a string.
+            ValueError:
+                If key is empty.
+        """
+        if not isinstance(key, str):
+            raise TypeError(
+                "Audit metadata key must be a string, "
+                f"received {type(key).__name__}."
+            )
+
+        normalized_key = key.strip()
+
+        if not normalized_key:
+            raise ValueError("Audit metadata key cannot be empty.")
+
+        self.metadata[normalized_key] = value
+
+    def _transition(
+        self,
+        *,
+        expected: set[AuditStatus],
+        new_status: AuditStatus,
+    ) -> None:
+        """
+        Apply a validated lifecycle transition.
+
+        Args:
+            expected:
+                Statuses from which the transition is allowed.
+            new_status:
+                Destination status.
+
+        Raises:
+            ValueError:
+                If the current status does not allow the transition.
+        """
+        if self.status not in expected:
+            allowed = ", ".join(sorted(status.value for status in expected))
+
+            raise ValueError(
+                f"Invalid audit transition from {self.status.value!r} "
+                f"to {new_status.value!r}. "
+                f"Allowed current statuses: {allowed}."
+            )
+
+        self.status = new_status
+
+    def _validate_timestamp_order(self) -> None:
+        """Validate chronological consistency among audit timestamps."""
+        if self.started_at is not None and self.started_at < self.created_at:
+            raise ValueError(
+                "Audit started_at cannot be earlier than created_at."
+            )
+
+        if self.completed_at is not None:
+            reference_time = self.started_at or self.created_at
+
+            if self.completed_at < reference_time:
+                raise ValueError(
+                    "Audit completed_at cannot be earlier than its "
+                    "creation or start timestamp."
+                )
+
+    @staticmethod
+    def _normalize_datetime(
+        *,
+        value: datetime,
+        field_name: str,
+    ) -> datetime:
+        """
+        Validate and normalize a datetime to UTC.
+
+        Naive datetime values are rejected to prevent ambiguous audit
+        timestamps.
+        """
+        if not isinstance(value, datetime):
+            raise TypeError(
+                f"Audit {field_name} must be a datetime, "
+                f"received {type(value).__name__}."
+            )
+
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError(
+                f"Audit {field_name} must include timezone information."
+            )
+
+        return value.astimezone(UTC)

@@ -1,0 +1,17 @@
+"""
+Minimal Documentation Auditor plugin used to validate plugin discovery.
+"""
+
+from __future__ import annotations
+
+from typing import Any
+
+
+class DocumentationAuditorPlugin:
+    """First executable plugin for the UAAF Plugin Manager MVP."""
+
+    def execute(self, context: Any) -> None:
+        print("Documentation Auditor loaded successfully.")
+
+
+__all__ = ["DocumentationAuditorPlugin"]

@@ -1,0 +1,47 @@
+"""
+End-to-end smoke test for the UAAF Audit Orchestrator MVP.
+"""
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+
+SCRIPT_FILE = Path(__file__).resolve()
+PROJECT_ROOT = SCRIPT_FILE.parents[2]
+SCRIPTS_ROOT = PROJECT_ROOT / "08_SCRIPTS"
+
+if str(SCRIPTS_ROOT) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_ROOT))
+
+from uaaf_core.audit.audit_orchestrator import AuditOrchestrator
+
+
+def main() -> int:
+    context = {
+        "project_path": str(PROJECT_ROOT),
+        "audit_type": "documentation",
+    }
+
+    orchestrator = AuditOrchestrator(PROJECT_ROOT / "plugins")
+    result = orchestrator.run(
+        "documentation-auditor",
+        context,
+    )
+
+    assert isinstance(result, dict)
+    assert result["plugin_id"] == "documentation-auditor"
+    assert result["status"] == "completed"
+    assert result["context"] == context
+
+    print(result["plugin_id"])
+    print(result["status"])
+    print(result["context"]["audit_type"])
+    print("[PASS] Audit Orchestrator smoke test completed.")
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
