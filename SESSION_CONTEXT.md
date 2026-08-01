@@ -1,20 +1,26 @@
 # UAAF — Session Context
 
-&gt; Última actualización: 2026-08-01
-&gt; Sesión actual: Architecture Auditor MVP — Test Suites A-D completadas
+> Última actualización: 2026-08-01
+> Sesión actual: Fase 2.1 — Report Engine (Markdown/JSON)
 
 ---
 
 ## 1. Estado actual del proyecto
 
-### ✅ Completado en esta sesión
-- **Test Suite A**: Contrato y configuración (`test_architecture_contract.py`) — 43 tests.
-- **Test Suite B**: Descubrimiento e índice (`test_architecture_discovery.py`) — 27 tests.
-- **Test Suite C**: Imports y grafo (`test_architecture_imports.py`) — 28 tests.
-- **Test Suite D**: Las 4 reglas (`test_architecture_rules.py`) — 34 tests.
-- **Total**: 132 tests deterministas, todos pasando.
+### ✅ FASE 1 COMPLETADA — Architecture Auditor MVP
+- **Test Suite A**: Contrato y configuración — 43 tests.
+- **Test Suite B**: Descubrimiento e índice — 27 tests.
+- **Test Suite C**: Imports y grafo — 28 tests.
+- **Test Suite D**: Las 4 reglas — 34 tests.
+- **Test Suite E**: Robustez — 19 tests.
+- **Test Suite F**: Integración con Runtime Pipeline — completada.
+- **Total Fase 1**: 151+ tests deterministas, todos pasando.
+- **Plugin**: `architecture_auditor.py` v1.5.1 estable y canónico.
 
-### 📁 Archivos modificados / creados en esta sesión
+### 🔄 FASE 2 EN CURSO
+- **2.1 Report Engine** (Markdown/JSON) — `08_SCRIPTS/uaaf_core/reporting/` — ⏳ EN CURSO
+
+### 📁 Archivos clave del proyecto
 | Archivo | Versión | Descripción |
 |---------|---------|-------------|
 | `plugins/architecture/architecture_auditor.py` | 1.5.1 | Plugin principal con todas las reglas + findings canónicos |
@@ -24,10 +30,8 @@
 | `09_TESTS/unit/test_architecture_discovery.py` | — | Suite B: Descubrimiento e índice |
 | `09_TESTS/unit/test_architecture_imports.py` | — | Suite C: Imports y grafo |
 | `09_TESTS/unit/test_architecture_rules.py` | — | Suite D: Las 4 reglas |
-| `test_cycle_detection.py` | — | Test manual de ciclo artificial (Commit 0016) |
-| `test_0017_layers.py` | — | Test manual de validación de capas (Commit 0017) |
-| `test_0018_0019.py` | — | Test manual de forbidden imports + missing init (Commits 0018-0019) |
-| `test_canonical.py` | — | Test manual del AuditResult canónico (Paso 1.1) |
+| `09_TESTS/unit/test_architecture_robustness.py` | — | Suite E: Robustez |
+| `09_TESTS/integration/test_architecture_pipeline.py` | — | Suite F: Integración con Runtime Pipeline |
 
 ### 🔧 Configuración técnica
 - Python 3.12
@@ -53,7 +57,7 @@
 - `08_SCRIPTS/uaaf_core/kernel.py` — `UAAFKernel`
 - `08_SCRIPTS/uaaf_core/registry.py` — `UAAFRegistry`
 
-### Patch Engine (usado por los generadores de commits)
+### Patch Engine
 - `08_SCRIPTS/uaaf_tools/patch_engine/` — motor de patches del proyecto
 
 ---
@@ -71,7 +75,7 @@
 
 ## 4. Próximos objetivos (orden de prioridad)
 
-### FASE 1 — Cierre del Architecture Auditor MVP
+### FASE 1 — Cierre del Architecture Auditor MVP ✅ COMPLETADA
 
 | # | Objetivo | Archivo(s) de salida | Estado |
 |---|----------|----------------------|--------|
@@ -80,13 +84,13 @@
 | 1.2 | **Test Suite C**: Imports y grafo | `09_TESTS/unit/test_architecture_imports.py` | ✅ COMPLETADO |
 | 1.2 | **Test Suite D**: Las 4 reglas | `09_TESTS/unit/test_architecture_rules.py` | ✅ COMPLETADO |
 | 1.2 | **Test Suite E**: Robustez | `09_TESTS/unit/test_architecture_robustness.py` | ✅ COMPLETADO |
-| 1.3 | **Test Suite F**: Integración con Runtime Pipeline | `09_TESTS/integration/test_architecture_pipeline.py` | ⏳ PENDIENTE |
+| 1.3 | **Test Suite F**: Integración con Runtime Pipeline | `09_TESTS/integration/test_architecture_pipeline.py` | ✅ COMPLETADO |
 
 ### FASE 2 — Extensión del UAAF
 
 | # | Objetivo | Archivo(s) de salida | Estado |
 |---|----------|----------------------|--------|
-| 2.1 | **Report Engine** (Markdown/JSON) | `08_SCRIPTS/uaaf_core/reporting/` | ⏳ PENDIENTE |
+| 2.1 | **Report Engine** (Markdown/JSON) | `08_SCRIPTS/uaaf_core/reporting/` | 🔄 EN CURSO |
 | 2.2 | **Nuevos plugins** (Documentación, Testing, Configuración, AI Systems) | `plugins/*/` | ⏳ PENDIENTE |
 | 2.3 | **Features semánticas avanzadas** (complejidad ciclomática, dead code) | `plugins/architecture/` extensión | ⏳ PENDIENTE |
 
@@ -95,3 +99,51 @@
 ## 5. Notas técnicas para la siguiente sesión
 
 ### Cómo iniciar un nuevo chat con el asistente
+```
+ROL: Actúa como Arquitecto Senior de IA, Ingeniero Full Stack especialista en LLMs.
+
+Contexto: Estoy continuando mi proyecto UAAF. Lee primero el archivo SESSION_CONTEXT.md
+de mi repositorio público para entender el estado exacto:
+https://raw.githubusercontent.com/RayIA007/Universal-Architecture-Audit-Framework/main/SESSION_CONTEXT.md
+
+Luego lee el archivo activo que necesito modificar (te lo indicaré).
+
+Objetivo de ESTA sesión: [describe UNA sola cosa]
+
+Limitaciones: Tengo VS Code con Python. Dame solo el código listo para copiar y pegar.
+```
+
+### Archivos que el asistente debe leer al inicio de cada sesión
+1. `SESSION_CONTEXT.md` (este archivo)
+2. El archivo objetivo de la sesión
+3. Cualquier dependencia directa (ej: `08_SCRIPTS/uaaf_core/audit/audit_result.py`)
+
+### Reglas de oro por sesión
+- **Una sesión = Un objetivo = Un entregable**
+- Commitear y pushear ANTES de cerrar el chat
+- Actualizar este `SESSION_CONTEXT.md` al final de cada sesión
+- Nunca mezclar objetivos (no hacer "report engine + nuevo plugin" en la misma sesión)
+
+---
+
+## 6. Historial de commits de la Fase 1
+
+```bash
+# Al finalizar la Fase 1, se ejecutó:
+git add .
+git commit -m "feat(architecture-auditor): Fase 1 completada — MVP + 6 Test Suites
+
+- Deterministic Python file discovery with configurable exclusions
+- Module and package index builder
+- AST import extraction with classification (stdlib/third_party/local)
+- Circular dependency detection via DFS
+- Layer validation (Clean Architecture)
+- Forbidden import detection (global + per-source)
+- Missing __init__.py validation
+- Canonical AuditResult with formal AuditFinding objects
+- Execution metadata (timestamps, duration_ms)
+- Test Suites A-F: 151+ deterministas tests pasando
+
+Refs: MVP spec, design doc, contract catalog"
+git push origin main
+```

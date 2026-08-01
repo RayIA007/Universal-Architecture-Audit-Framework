@@ -5,7 +5,21 @@
 
 ---
 
-## 🚀 Flujo de trabajo por sesión
+## ✅ FASE 1 COMPLETADA — Architecture Auditor MVP
+
+Todas las Test Suites A-F han sido implementadas, probadas y commiteadas:
+- **Suite A** (Contrato): 43 tests
+- **Suite B** (Descubrimiento): 27 tests
+- **Suite C** (Imports): 28 tests
+- **Suite D** (Reglas): 34 tests
+- **Suite E** (Robustez): 19 tests
+- **Suite F** (Integración): completada
+
+**Plugin estable**: `plugins/architecture/architecture_auditor.py` v1.5.1
+
+---
+
+## 🚀 Flujo de trabajo por sesión (Fase 2)
 
 ```
 ┌─────────────────┐
@@ -46,163 +60,69 @@
 
 ---
 
-## 📋 Checklist de sesiones (FASE 1: Cierre MVP)
-
-### Sesión N+1 — Test Suite A: Contrato y configuración
-**Objetivo**: Validar que el plugin rechace entradas inválidas y acepte las válidas.
-
-- [ ] `project_path` válido (directorio existente)
-- [ ] `project_path` inválido (no existe, no es directorio, no es string)
-- [ ] `audit_type` correcto (`"architecture"`)
-- [ ] `audit_type` incorrecto (cualquier otro valor)
-- [ ] Campos desconocidos en context (debe lanzar `ValueError`)
-- [ ] `ignored_directories` válidas (lista de strings)
-- [ ] `ignored_directories` inválidas (path en lugar de nombre, tipos incorrectos)
-- [ ] Valores predeterminados (sin `ignored_directories`, sin `audit_type`)
-- [ ] `AuditResult` serializable y pasa `validate_audit_result()`
-- [ ] `AuditResult` tiene exactamente las keys requeridas, ni más ni menos
-
-**Archivo de salida**: `09_TESTS/unit/test_architecture_contract.py`
-
----
-
-### Sesión N+2 — Test Suite B: Descubrimiento e índice
-**Objetivo**: Validar descubrimiento determinista de archivos y construcción del índice.
-
-- [ ] Proyecto vacío → 0 archivos, 0 módulos, 0 paquetes
-- [ ] `main.py` en raíz → 1 módulo, 0 paquetes
-- [ ] `package/__init__.py` → 1 módulo, 1 paquete
-- [ ] `package/module.py` con `__init__.py` → 2 módulos, 1 paquete
-- [ ] Paquetes anidados (`a/b/c/__init__.py`)
-- [ ] Namespace packages (directorio sin `__init__.py`)
-- [ ] Exclusiones predeterminadas (`.git`, `__pycache__`, etc. no aparecen)
-- [ ] Exclusiones personalizadas del usuario
-- [ ] Rutas Windows → salida POSIX (`/` en lugar de `\`)
-- [ ] Orden estable (mismo resultado en ejecuciones repetidas)
-- [ ] Archivos no-Python ignorados
-- [ ] Directorios vacíos no generan paquetes
-
-**Archivo de salida**: `09_TESTS/unit/test_architecture_discovery.py`
-
----
-
-### Sesión N+3 — Test Suite C: Imports y grafo
-**Objetivo**: Validar extracción AST de imports y construcción del grafo de dependencias.
-
-- [ ] `import x` → detectado
-- [ ] `import x.y` → detectado
-- [ ] `from x import y` → detectado
-- [ ] `from x import y, z` → múltiples aliases detectados
-- [ ] Imports relativos (`from . import x`, `from .. import y`)
-- [ ] Imports relativos con módulo (`from .module import x`)
-- [ ] Imports externos → clasificación `third_party`
-- [ ] Imports stdlib → clasificación `stdlib`
-- [ ] Imports locales → clasificación `local` + arista en grafo
-- [ ] Imports locales no resolubles → clasificación `third_party` (fallback)
-- [ ] Alias (`import x as y`) → target sigue siendo `x`
-- [ ] Múltiples imports en un archivo
-- [ ] Archivo con sintaxis inválida → skip sin crash
-- [ ] Archivo no legible (encoding) → skip sin crash
-- [ ] Aristas sin duplicados (mismo import repetido = una arista)
-
-**Archivo de salida**: `09_TESTS/unit/test_architecture_imports.py`
-
----
-
-### Sesión N+4 — Test Suite D: Las 4 reglas
-**Objetivo**: Validar cada una de las 4 reglas de arquitectura con casos de prueba.
-
-#### Regla 1: Ciclos (Commit 0016)
-- [ ] Grafo sin ciclos → 0 ciclos detectados
-- [ ] Ciclo simple (A→B→C→A) → 1 ciclo
-- [ ] Múltiples ciclos independientes → N ciclos
-- [ ] Ciclos superpuestos (A→B→C→A y B→C→D→B)
-- [ ] Normalización de ciclos equivalentes (A→B→C→A == B→C→A→B)
-
-#### Regla 2: Capas (Commit 0017)
-- [ ] Import válido (misma capa o capa inferior)
-- [ ] Import inválido (capa superior desde capa inferior)
-- [ ] Módulo no asignado a capa → ignorado
-- [ ] Configuración `layers` inválida → `ValueError`
-
-#### Regla 3: Forbidden (Commit 0018)
-- [ ] Pattern global que matchea
-- [ ] Pattern global que NO matchea
-- [ ] Pattern `module.*` que matchea `module` (root) y `module.sub`
-- [ ] Regla per-source que matchea
-- [ ] Regla per-source que NO matchea
-- [ ] Configuración `forbidden_imports` inválida → `ValueError`
-
-#### Regla 4: Init (Commit 0019)
-- [ ] Matriz completa de la especificación (20 casos)
-- [ ] `require_package_initializers=False` → 0 violaciones
-- [ ] Configuración omitida → 0 violaciones (default False)
-
-**Archivo de salida**: `09_TESTS/unit/test_architecture_rules.py`
-
----
-
-### Sesión N+5 — Test Suite E: Robustez
-**Objetivo**: Validar comportamiento ante condiciones adversas.
-
-- [ ] Error recuperable no detiene la auditoría (ej: un archivo con syntax error)
-- [ ] Salida determinista (mismo input = mismo output bit a bit)
-- [ ] Ningún archivo auditado se modifica (solo lectura)
-- [ ] Proyecto grande (100+ archivos) → no crash, tiempo razonable
-- [ ] Rutas profundas (nesting de 10+ niveles)
-- [ ] Caracteres Unicode en nombres de archivo
-- [ ] Ejecución repetida → resultados idénticos
-- [ ] Ausencia de estado residual entre ejecuciones (no hay variables globales mutables)
-
-**Archivo de salida**: `09_TESTS/unit/test_architecture_robustness.py`
-
----
-
-### Sesión N+6 — Test Suite F: Integración con Runtime Pipeline
-**Objetivo**: Validar que el plugin funciona dentro del ecosistema UAAF real.
-
-- [ ] Carga de `plugin.yaml` → metadata correcta
-- [ ] Importación del entrypoint (`ArchitectureAuditorPlugin`)
-- [ ] Ejecución vía `ArchitectureAuditorPlugin.execute(context)`
-- [ ] Ejecución vía Runtime Pipeline (`UAAFRuntime`)
-- [ ] Propagación del `AuditResult` al caller
-- [ ] Manejo de fallo del plugin (excepción en `execute`)
-- [ ] Convivencia con otros auditores (si existen)
-- [ ] Smoke test sobre el propio UAAF (auditar el repo UAAF con el UAAF)
-
-**Archivo de salida**: `09_TESTS/integration/test_architecture_pipeline.py`
-
----
-
 ## 📋 Checklist de sesiones (FASE 2: Extensión)
 
-### Sesión N+7 — Report Engine
-- [ ] Generador de reporte Markdown a partir de `AuditResult`
-- [ ] Generador de reporte JSON a partir de `AuditResult`
-- [ ] Template básico con resumen, métricas y findings
-- [ ] Escritura en `07_OUTPUTS/`
+### Sesión 2.1 — Report Engine
+**Objetivo**: Generar reportes humanos y máquina-legibles a partir de `AuditResult`.
 
-**Archivo de salida**: `08_SCRIPTS/uaaf_core/reporting/report_engine.py`
+- [ ] Clase `ReportEngine` con método `generate(result: AuditResult, format: str) -> str`
+- [ ] Formato **Markdown**: tabla de métricas, lista de findings con severidad, resumen ejecutivo
+- [ ] Formato **JSON**: serialización completa y pretty-printed del `AuditResult`
+- [ ] Template configurable (header, footer, branding UAAF)
+- [ ] Escritura automática a `07_OUTPUTS/` con timestamp en el nombre de archivo
+- [ ] Manejo de `AuditResult` vacío (sin findings) → reporte informativo, no vacío
+- [ ] Manejo de múltiples findings → agrupados por severidad (CRITICAL → ERROR → WARNING → INFO)
+- [ ] Smoke test: generar reporte desde un `AuditResult` real del architecture auditor
+- [ ] Tests deterministas para ambos formatos
 
-### Sesión N+8 — Nuevo plugin: Documentation Auditor
-- [ ] Especificación del plugin
+**Archivos de salida**:
+- `08_SCRIPTS/uaaf_core/reporting/report_engine.py`
+- `08_SCRIPTS/uaaf_core/reporting/__init__.py`
+- `09_TESTS/unit/test_report_engine.py`
+
+---
+
+### Sesión 2.2 — Nuevo plugin: Documentation Auditor
+**Objetivo**: Auditar la calidad y presencia de documentación en el proyecto.
+
+- [ ] Especificación del plugin (`plugin.yaml`)
 - [ ] Descubrimiento de archivos Markdown / RST / txt
 - [ ] Reglas: README presente, CHANGELOG presente, docstrings mínimas
 - [ ] Integración con el registro
 
 **Archivo de salida**: `plugins/documentation/documentation_auditor.py`
 
-### Sesión N+9 — Nuevo plugin: Testing Auditor
+---
+
+### Sesión 2.3 — Nuevo plugin: Testing Auditor
+**Objetivo**: Auditar la cobertura y calidad de tests del proyecto.
+
 - [ ] Descubrimiento de archivos de test
 - [ ] Reglas: cobertura mínima, tests unitarios presentes, fixtures
 
 **Archivo de salida**: `plugins/testing/testing_auditor.py`
 
-### Sesión N+10 — Nuevos plugins: Configuration + AI Systems
+---
+
+### Sesión 2.4 — Nuevos plugins: Configuration + AI Systems
+**Objetivo**: Auditar configuraciones y sistemas de IA.
+
 - [ ] Configuration Auditor: validación de config files, secrets, entornos
 - [ ] AI Systems Auditor: validación de prompts, model cards, bias checks
 
 **Archivos de salida**: `plugins/configuration/`, `plugins/ai_systems/`
+
+---
+
+### Sesión 2.5 — Features semánticas avanzadas (Architecture Auditor)
+**Objetivo**: Extender el auditor arquitectónico con análisis estático avanzado.
+
+- [ ] Complejidad ciclomática por función/módulo
+- [ ] Dead code detection (funciones/imports no usados)
+- [ ] Métricas de mantenibilidad (líneas de código, dependencias por módulo)
+- [ ] Nuevos códigos de finding: `ARCH-COMPLEX-001`, `ARCH-DEAD-001`
+
+**Archivo de salida**: `plugins/architecture/architecture_auditor.py` (extensión)
 
 ---
 
@@ -234,7 +154,7 @@ Limitaciones:
 
 ## ⚠️ Qué NUNCA hacer en una sesión
 
-- ❌ Mezclar objetivos (no hacer "tests + report engine" juntos)
+- ❌ Mezclar objetivos (no hacer "report engine + nuevo plugin" juntos)
 - ❌ Pegar 500 líneas de código en el chat para "que recuerdes"
 - ❌ Modificar `08_SCRIPTS/uaaf_core/audit/audit_result.py` sin coordinación
 - ❌ Olvidar commitear y pushear antes de cerrar el chat
