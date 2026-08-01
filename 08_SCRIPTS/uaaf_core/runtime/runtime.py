@@ -410,10 +410,19 @@ class UAAFRuntime:
                 ↓
             complete
         """
-        self.initialize()
-        self.start()
-        results = self.execute_profile_processors()
-        self.complete()
+        try:
+            self.initialize()
+            self.start()
+            results = self.execute_profile_processors()
+            self.complete()
+        except Exception as error:
+            # UAAF-RUNTIME-FAILURE-LIFECYCLE-TEST-SUITE-F
+            if not self.is_terminal:
+                self.fail(
+                    "Runtime execution failed: "
+                    f"{self._format_exception(error)}"
+                )
+            raise
 
         return results
 

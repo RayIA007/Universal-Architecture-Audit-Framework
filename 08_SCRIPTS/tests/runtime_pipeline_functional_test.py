@@ -30,6 +30,8 @@ import shutil
 import sys
 from pathlib import Path
 
+import pytest
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS_ROOT = PROJECT_ROOT / "08_SCRIPTS"
@@ -136,6 +138,16 @@ def build_context(test_root: Path) -> RuntimeContext:
     context.set_metric("processors_with_warnings", 0)
 
     return context
+
+
+@pytest.fixture
+def context(tmp_path: Path) -> RuntimeContext:
+    """Build one isolated RuntimeContext for each pytest test."""
+
+    # UAAF-PYTEST-CONTEXT-FIXTURE
+    return build_context(
+        tmp_path / "runtime_pipeline_functional_test"
+    )
 
 
 def test_profile_pipeline(context: RuntimeContext) -> None:
