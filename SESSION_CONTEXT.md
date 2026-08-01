@@ -32,6 +32,9 @@
 | `09_TESTS/unit/test_architecture_rules.py` | — | Suite D: Las 4 reglas |
 | `09_TESTS/unit/test_architecture_robustness.py` | — | Suite E: Robustez |
 | `09_TESTS/integration/test_architecture_pipeline.py` | — | Suite F: Integración con Runtime Pipeline |
+| `08_SCRIPTS/uaaf_core/reporting/report_engine.py` | 1.0.0 | Motor de generación de reportes Markdown/JSON |
+| `08_SCRIPTS/uaaf_core/reporting/__init__.py` | — | Exports del paquete reporting |
+| `09_TESTS/unit/test_report_engine.py` | — | Test Suite G: Report Engine (33 tests) |
 
 ### 🔧 Configuración técnica
 - Python 3.12
@@ -86,13 +89,10 @@
 | 1.2 | **Test Suite E**: Robustez | `09_TESTS/unit/test_architecture_robustness.py` | ✅ COMPLETADO |
 | 1.3 | **Test Suite F**: Integración con Runtime Pipeline | `09_TESTS/integration/test_architecture_pipeline.py` | ✅ COMPLETADO |
 
-### FASE 2 — Extensión del UAAF
-
-| # | Objetivo | Archivo(s) de salida | Estado |
-|---|----------|----------------------|--------|
-| 2.1 | **Report Engine** (Markdown/JSON) | `08_SCRIPTS/uaaf_core/reporting/` | 🔄 EN CURSO |
-| 2.2 | **Nuevos plugins** (Documentación, Testing, Configuración, AI Systems) | `plugins/*/` | ⏳ PENDIENTE |
-| 2.3 | **Features semánticas avanzadas** (complejidad ciclomática, dead code) | `plugins/architecture/` extensión | ⏳ PENDIENTE |
+### 🔄 FASE 2 EN CURSO
+- **2.1 Report Engine** (Markdown/JSON) — `08_SCRIPTS/uaaf_core/reporting/` — ✅ COMPLETADO
+- **2.2 Nuevos plugins** (Documentación, Testing, Configuración, AI Systems) — `plugins/*/` — ⏳ PENDIENTE
+- **2.3 Features semánticas avanzadas** (complejidad ciclomática, dead code) — `plugins/architecture/` extensión — ⏳ PENDIENTE
 
 ---
 
