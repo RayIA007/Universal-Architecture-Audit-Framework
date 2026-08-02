@@ -1,11 +1,9 @@
-# UAAF — Session Context
+## 1. Estado actual del proyecto
 
 > Última actualización: 2026-08-01
-> Sesión actual: Fase 2.1 — Report Engine (Markdown/JSON)
+> Sesión actual: Fase 2.2 — Configuration Auditor Plugin
 
 ---
-
-## 1. Estado actual del proyecto
 
 ### ✅ FASE 1 COMPLETADA — Architecture Auditor MVP
 - **Test Suite A**: Contrato y configuración — 43 tests.
@@ -17,8 +15,16 @@
 - **Total Fase 1**: 151+ tests deterministas, todos pasando.
 - **Plugin**: `architecture_auditor.py` v1.5.1 estable y canónico.
 
-### 🔄 FASE 2 EN CURSO
-- **2.1 Report Engine** (Markdown/JSON) — `08_SCRIPTS/uaaf_core/reporting/` — ⏳ EN CURSO
+### ✅ FASE 2 EN CURSO
+- **2.1 Report Engine** (Markdown/JSON) — `08_SCRIPTS/uaaf_core/reporting/` — ✅ COMPLETADO — 33 tests
+- **2.2 Nuevos plugins** — `plugins/*/` — 🔄 EN CURSO
+ - ✅ **Documentation Auditor** — `plugins/documentation/` — v1.0.0 — 56 tests
+ - ✅ **Testing Auditor** — `plugins/testing/` — v1.0.0 — 39 tests
+ - ✅ **Configuration Auditor** — `plugins/configuration/` — v1.0.0 — 56 tests
+ - ⏳ **AI Systems Auditor** — `plugins/ai_systems/` — PENDIENTE
+- **2.3 Features semánticas avanzadas** (complejidad ciclomática, dead code) — `plugins/architecture/` extensión — ⏳ PENDIENTE
+
+**Total acumulado del proyecto: 335+ tests deterministas, todos pasando.**
 
 ### 📁 Archivos clave del proyecto
 | Archivo | Versión | Descripción |
@@ -38,9 +44,12 @@
 | `plugins/documentation/documentation_auditor.py` | 1.0.0 | Plugin de auditoría de documentación |
 | `plugins/documentation/__init__.py` | — | Bootstrap del plugin documentation |
 | `09_TESTS/unit/test_documentation_auditor.py` | — | Test Suite H: Documentation Auditor (56 tests) |
-| `plugins/testing/__init__.py` | — | Bootstrap del plugin testing |
 | `plugins/testing/testing_auditor.py` | 1.0.0 | Plugin de auditoría de tests (cobertura, calidad, placeholders) |
+| `plugins/testing/__init__.py` | — | Bootstrap del plugin testing |
 | `09_TESTS/unit/test_testing_auditor.py` | — | Test Suite I: Testing Auditor (39 tests) |
+| `plugins/configuration/configuration_auditor.py` | 1.0.0 | Plugin de auditoría de configuración |
+| `plugins/configuration/__init__.py` | — | Bootstrap del plugin configuration |
+| `09_TESTS/unit/test_configuration_auditor.py` | — | Test Suite J: Configuration Auditor (56 tests) |
 
 ### 🔧 Configuración técnica
 - Python 3.12
@@ -95,16 +104,16 @@
 | 1.2 | **Test Suite E**: Robustez | `09_TESTS/unit/test_architecture_robustness.py` | ✅ COMPLETADO |
 | 1.3 | **Test Suite F**: Integración con Runtime Pipeline | `09_TESTS/integration/test_architecture_pipeline.py` | ✅ COMPLETADO |
 
-### 🔄 FASE 2 EN CURSO
-- **2.1 Report Engine** (Markdown/JSON) — `08_SCRIPTS/uaaf_core/reporting/` — ✅ COMPLETADO
-### 🔄 FASE 2 EN CURSO
-- **2.1 Report Engine** (Markdown/JSON) — `08_SCRIPTS/uaaf_core/reporting/` — ✅ COMPLETADO
-- **2.2 Nuevos plugins** — `plugins/*/` — 🔄 EN CURSO
-  - ✅ **Documentation Auditor** — `plugins/documentation/` — v1.0.0 — 56 tests
-  - ✅ COMPLETADO **Testing Auditor** — `plugins/testing/` — PENDIENTE
-  - ⏳ **Configuration Auditor** — `plugins/configuration/` — PENDIENTE
-  - ⏳ **AI Systems Auditor** — `plugins/ai_systems/` — PENDIENTE
-- **2.3 Features semánticas avanzadas** (complejidad ciclomática, dead code) — `plugins/architecture/` extensión — ⏳ PENDIENTE
+### FASE 2 — Extensión de plugins y reporting
+
+| # | Objetivo | Archivo(s) de salida | Estado |
+|---|----------|----------------------|--------|
+| 2.1 | **Report Engine** (Markdown/JSON) | `08_SCRIPTS/uaaf_core/reporting/` | ✅ COMPLETADO |
+| 2.2 | **Documentation Auditor** | `plugins/documentation/` | ✅ COMPLETADO |
+| 2.2 | **Testing Auditor** | `plugins/testing/` | ✅ COMPLETADO |
+| 2.2 | **Configuration Auditor** | `plugins/configuration/` | ✅ COMPLETADO |
+| 2.2 | **AI Systems Auditor** | `plugins/ai_systems/` | ⏳ PENDIENTE |
+| 2.3 | **Features semánticas avanzadas** | `plugins/architecture/` extensión | ⏳ PENDIENTE |
 
 ---
 
@@ -138,24 +147,25 @@ Limitaciones: Tengo VS Code con Python. Dame solo el código listo para copiar y
 
 ---
 
-## 6. Historial de commits de la Fase 1
+## 6. Historial de commits
+
+### Fase 1 — Architecture Auditor MVP
 
 ```bash
 # Al finalizar la Fase 1, se ejecutó:
 git add .
 git commit -m "feat(architecture-auditor): Fase 1 completada — MVP + 6 Test Suites
 
-- Deterministic Python file discovery with configurable exclusions
-- Module and package index builder
-- AST import extraction with classification (stdlib/third_party/local)
-- Circular dependency detection via DFS
-- Layer validation (Clean Architecture)
-- Forbidden import detection (global + per-source)
-- Missing __init__.py validation
-- Canonical AuditResult with formal AuditFinding objects
-- Execution metadata (timestamps, duration_ms)
-- Test Suites A-F: 151+ deterministas tests pasando
+\- Deterministic Python file discovery with configurable exclusions
+\- Module and package index builder
+\- AST import extraction with classification (stdlib/third_party/local)
+\- Circular dependency detection via DFS
+\- Layer validation (Clean Architecture)
+\- Forbidden import detection (global + per-source)
+\- Missing __init__.py validation
+\- Canonical AuditResult with formal AuditFinding objects
+\- Execution metadata (timestamps, duration_ms)
+\- Test Suites A-F: 151+ deterministas tests pasando
 
 Refs: MVP spec, design doc, contract catalog"
 git push origin main
-```
