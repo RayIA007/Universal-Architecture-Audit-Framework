@@ -160,13 +160,22 @@ Todas las Test Suites A-F han sido implementadas, probadas y commiteadas:
 - [x] Usar `tempfile.TemporaryDirectory`. 
 - [x] Probar casos positivos, negativos, límites y falsos positivos. 
 - [x] Ejecutar nuevamente las Suites A-F. 
-- [x] Ejecutar la nueva Suite L. 
-  
-- [ ] Ejecutar la suite completa del repositorio. SIGUIENTE OBJETIVO 
+- [x] Ejecutar la nueva Suite L.   
+- [x] Ejecutar la suite completa del repositorio. 
 
   **Archivos de salida previstos**: 
 - `plugins/architecture/architecture_auditor.py` 
 - `09_TESTS/unit/test_architecture_semantics.py` 
+
+### FASE 3 — Consolidación y CLI (próxima fase activa)
+| # | Objetivo | Archivo(s) de salida | Estado |
+|---|----------|----------------------|--------|
+| 3.1 | **Orchestrator / CLI unificado** | `run.py` o `uaaf/cli.py` | ⏳ PENDIENTE |
+| 3.2 | **Plugin Registry dinámico** | `08_SCRIPTS/uaaf_core/registry.py` | ⏳ PENDIENTE |
+| 3.3 | **Configuración global** | `uaaf.yaml` / `pyproject.toml[tool.uaaf]` | ⏳ PENDIENTE |
+| 3.4 | **CI/CD Integration** | `.github/workflows/uaaf.yml` | ⏳ PENDIENTE |
+| 3.5 | **Export a SARIF** | `08_SCRIPTS/uaaf_core/reporting/sarif_exporter.py` | ⏳ PENDIENTE |
+| 3.6 | **Documentación pública** | `README.md`, `docs/` | ⏳ PENDIENTE |
 --- 
   ## 🎯 Próxima sesión activa 
 

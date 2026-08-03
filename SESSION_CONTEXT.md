@@ -160,6 +160,18 @@ Configuration Auditor: 56 tests.
 AI Systems Auditor: 79 tests.
 
 Validación reconfirmada en esta sesión: 232 tests del Architecture Auditor.
+### FASE 3 — Consolidación y CLI (próxima fase activa)
+| # | Objetivo | Archivo(s) de salida | Estado |
+|---|----------|----------------------|--------|
+| 3.1 | **Orchestrator / CLI unificado** | `run.py` o `uaaf/cli.py` | ⏳ PENDIENTE |
+| 3.2 | **Plugin Registry dinámico** | `08_SCRIPTS/uaaf_core/registry.py` | ⏳ PENDIENTE |
+| 3.3 | **Configuración global** | `uaaf.yaml` / `pyproject.toml[tool.uaaf]` | ⏳ PENDIENTE |
+| 3.4 | **CI/CD Integration** | `.github/workflows/uaaf.yml` | ⏳ PENDIENTE |
+| 3.5 | **Export a SARIF** | `08_SCRIPTS/uaaf_core/reporting/sarif_exporter.py` | ⏳ PENDIENTE |
+| 3.6 | **Documentación pública** | `README.md`, `docs/` | ⏳ PENDIENTE |
+
+
+
 
 ### Próximos códigos de Fase 2.3 
 | Código | Regla prevista | Severidad prevista | 
