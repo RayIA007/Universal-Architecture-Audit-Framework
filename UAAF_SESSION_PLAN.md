@@ -114,54 +114,55 @@ Todas las Test Suites A-F han sido implementadas, probadas y commiteadas:
 
 ---
 
-### Fase 2.3 — Features semánticas avanzadas ⏳ SIGUIENTE OBJETIVO 
+### Fase 2.3 — Features semánticas avanzadas ✅ COMPLETADA 
 **Objetivo**: Extender el Architecture Auditor con análisis estático semántico avanzado, preservando completamente la compatibilidad con las Suites A-F. 
 
 #### Complejidad ciclomática 
-- [ ] Analizar funciones síncronas y asíncronas mediante AST. 
-- [ ] Calcular complejidad por función y método. 
-- [ ] Definir un umbral configurable con valor predeterminado seguro. 
-- [ ] Emitir `ARCH-COMPLEX-001` cuando se exceda el umbral. 
-- [ ] Incluir función, línea, complejidad calculada y umbral en `details`. 
-- [ ] Mantener resultados ordenados y deterministas. 
+- [x] Analizar funciones síncronas y asíncronas mediante AST. 
+- [x] Calcular complejidad por función y método. 
+- [x] Definir un umbral configurable con valor predeterminado seguro. 
+- [x] Emitir `ARCH-COMPLEX-001` cuando se exceda el umbral. 
+- [x] Incluir función, línea, complejidad calculada y umbral en `details`. 
+- [x] Mantener resultados ordenados y deterministas. 
   
 - #### Dead code conservador 
-- [ ] Construir un índice de definiciones y referencias. 
-- [ ] Detectar imports no utilizados por archivo. 
-- [ ] Detectar funciones de nivel módulo sin referencias. 
-- [ ] Evitar falsos positivos para símbolos incluidos en `__all__`. 
-- [ ] Evitar falsos positivos para funciones decoradas, fixtures, entry points y métodos especiales. 
-- [ ] No marcar automáticamente métodos públicos como muertos. 
-- [ ] Emitir `ARCH-DEAD-001`. 
-- [ ] Diferenciar el subtipo mediante `details["kind"]`. 
+- [x] Construir un índice de definiciones y referencias. 
+- [x] Detectar imports no utilizados por archivo. 
+- [x] Detectar funciones de nivel módulo sin referencias. 
+- [x] Evitar falsos positivos para símbolos incluidos en `__all__`. 
+- [x] Evitar falsos positivos para funciones decoradas, fixtures, entry points y métodos especiales. 
+- [x] No marcar automáticamente métodos públicos como muertos. 
+- [x] Emitir `ARCH-DEAD-001`. 
+- [x] Diferenciar el subtipo mediante `details["kind"]`. 
   
 - #### Métricas de mantenibilidad 
-- [ ] Líneas físicas y líneas de código por módulo. 
-- [ ] Número de funciones, funciones asíncronas y clases. 
-- [ ] Complejidad promedio y máxima. 
-- [ ] Dependencias locales por módulo. 
-- [ ] Imports no utilizados. 
-- [ ] Funciones potencialmente no utilizadas. 
-- [ ] Totales agregados en `metrics`. 
-- [ ] Registros detallados en `summary`. 
+- [x] Líneas físicas y líneas de código por módulo. 
+- [x] Número de funciones, funciones asíncronas y clases. 
+- [x] Complejidad promedio y máxima. 
+- [x] Dependencias locales por módulo. 
+- [x] Imports no utilizados. 
+- [x] Funciones potencialmente no utilizadas. 
+- [x] Totales agregados en `metrics`. 
+- [x] Registros detallados en `summary`. 
 
 - #### Compatibilidad y contrato 
-- [ ] Preservar `run(context) -> dict[str, Any]`. 
-- [ ] Preservar el wrapper `execute()`. 
-- [ ] Preservar los códigos `ARCH-CYCLE-001`, `ARCH-LAYER-001`, `ARCH-FORBIDDEN-001` y `ARCH-INIT-001`. 
-- [ ] No modificar `audit_result.py`. 
-- [ ] Mantener rutas relativas POSIX. 
-- [ ] Mantener orden determinista. 
-- [ ] Mantener compatibilidad con contextos existentes. 
-- [ ] Incrementar la versión del Architecture Auditor de forma compatible. 
+- [x] Preservar `run(context) -> dict[str, Any]`. 
+- [x] Preservar el wrapper `execute()`. 
+- [x] Preservar los códigos `ARCH-CYCLE-001`, `ARCH-LAYER-001`, `ARCH-FORBIDDEN-001` y `ARCH-INIT-001`. 
+- [x] No modificar `audit_result.py`. 
+- [x] Mantener rutas relativas POSIX. 
+- [x] Mantener orden determinista. 
+- [x] Mantener compatibilidad con contextos existentes. 
+- [x] Incrementar la versión del Architecture Auditor de forma compatible. 
  
   #### Pruebas 
-- [ ] Crear Suite L con un mínimo de 40 tests deterministas. 
-- [ ] Usar `tempfile.TemporaryDirectory`. 
-- [ ] Probar casos positivos, negativos, límites y falsos positivos. 
-- [ ] Ejecutar nuevamente las Suites A-F. 
-- [ ] Ejecutar la nueva Suite L. 
-- [ ] Ejecutar la suite completa del repositorio. 
+- [x] Crear Suite L con un mínimo de 40 tests deterministas. 
+- [x] Usar `tempfile.TemporaryDirectory`. 
+- [x] Probar casos positivos, negativos, límites y falsos positivos. 
+- [x] Ejecutar nuevamente las Suites A-F. 
+- [x] Ejecutar la nueva Suite L. 
+  
+- [ ] Ejecutar la suite completa del repositorio. SIGUIENTE OBJETIVO 
 
   **Archivos de salida previstos**: 
 - `plugins/architecture/architecture_auditor.py` 
