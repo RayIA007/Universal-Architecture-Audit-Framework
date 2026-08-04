@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-import importlib.util
 import json
 import re
-import sys
 import tempfile
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from types import ModuleType
-from typing import Any, Callable, Iterable, Mapping, Sequence
+from typing import Any, Mapping, Sequence
 
 from uaaf_core.audit.audit_result import (
     AuditExecution,
@@ -24,7 +21,11 @@ from uaaf_core.audit.audit_result import (
 from uaaf_core.contracts.processor import ProcessorContract
 from uaaf_core.kernel import UAAFKernel
 from uaaf_core.models.profile import AuditProfile
-from uaaf_core.registry import UAAFRegistry
+from uaaf_core.registry import (
+    PluginDescriptor,
+    PluginDiscoveryError,
+    UAAFRegistry,
+)
 from uaaf_core.reporting.report_engine import ReportEngine
 from uaaf_core.runtime.runtime_context import RuntimeContext
 
@@ -56,38 +57,6 @@ class OrchestratorError(RuntimeError):
     """Base exception for unified orchestration failures."""
 
 
-class PluginDiscoveryError(OrchestratorError):
-    """Raised when a plugin directory does not satisfy the plugin contract."""
-
-
-@dataclass(frozen=True, slots=True)
-class PluginDescriptor:
-    """One discovered UAAF auditor plugin."""
-
-    name: str
-    audit_type: str
-    plugin_id: str
-    plugin_version: str
-    package_dir: Path
-    module_path: Path
-    runner: Callable[[dict[str, Any]], dict[str, Any]]
-    module: ModuleType = field(repr=False, compare=False)
-    allowed_context_fields: frozenset[str] = field(default_factory=frozenset)
-
-    @property
-    def aliases(self) -> frozenset[str]:
-        """Return normalized selector aliases accepted by ``--auditors``."""
-        raw_aliases = {
-            self.name,
-            self.audit_type,
-            self.plugin_id,
-            self.plugin_id.removesuffix("-auditor"),
-            self.name.replace("_", "-"),
-            self.name.replace("-", "_"),
-        }
-        return frozenset(_normalize_selector(alias) for alias in raw_aliases if alias)
-
-
 @dataclass(slots=True)
 class OrchestrationResult:
     """Complete output of one unified UAAF execution."""
@@ -108,17 +77,38 @@ class UnifiedOrchestrator:
         framework_root: str | Path | None = None,
         plugins_dir: str | Path | None = None,
         report_engine: ReportEngine | None = None,
+        registry: UAAFRegistry | None = None,
     ) -> None:
         inferred_root = Path(__file__).resolve().parents[2]
-        self.framework_root = Path(framework_root or inferred_root).expanduser().resolve()
-        self.plugins_dir = Path(plugins_dir or self.framework_root / "plugins").expanduser().resolve()
+        registry_root = getattr(registry, "framework_root", inferred_root)
+        self.framework_root = Path(
+            framework_root or registry_root
+        ).expanduser().resolve()
+        registry_plugins = getattr(
+            registry,
+            "plugins_dir",
+            self.framework_root / "plugins",
+        )
+        self.plugins_dir = Path(
+            plugins_dir or registry_plugins
+        ).expanduser().resolve()
+        self.registry = (
+            registry
+            if registry is not None
+            else UAAFRegistry(
+                framework_root=self.framework_root,
+                plugins_dir=self.plugins_dir,
+            )
+        )
         self.report_engine = report_engine or ReportEngine()
 
     def discover_plugins(self) -> list[PluginDescriptor]:
-        """Discover valid ``plugins/*/<name>_auditor.py`` packages."""
-        return discover_plugins(
-            framework_root=self.framework_root,
-            plugins_dir=self.plugins_dir,
+        """Delegate canonical plugin discovery to ``UAAFRegistry``."""
+        return list(
+            self.registry.discover_plugins(
+                framework_root=self.framework_root,
+                plugins_dir=self.plugins_dir,
+            )
         )
 
     def run(
@@ -139,7 +129,7 @@ class UnifiedOrchestrator:
 
         config = load_config(config_path) if config_path else {}
         discovered = self.discover_plugins()
-        selected = select_plugins(discovered, auditors)
+        selected = list(self.registry.select_plugins(auditors))
         formats = normalize_output_formats(
             output_formats if output_formats else config.get("output_formats", DEFAULT_OUTPUT_FORMATS)
         )
@@ -168,6 +158,11 @@ class UnifiedOrchestrator:
                 workspace_dir=Path(workspace),
                 selected_plugins=selected,
                 plugin_contexts=plugin_contexts,
+                registry=(
+                    self.registry
+                    if isinstance(self.registry, UAAFRegistry)
+                    else None
+                ),
             )
             runtime.run()
             audit_results = _extract_ordered_audit_results(
@@ -208,112 +203,34 @@ def discover_plugins(
     framework_root: str | Path,
     plugins_dir: str | Path,
 ) -> list[PluginDescriptor]:
-    """Discover auditor packages in deterministic directory-name order."""
-    root = _require_directory(framework_root, "framework_root")
-    directory = _require_directory(plugins_dir, "plugins_dir")
-    scripts_dir = root / "08_SCRIPTS"
-    for import_root in (root, scripts_dir):
-        import_text = str(import_root)
-        if import_root.is_dir() and import_text not in sys.path:
-            sys.path.insert(0, import_text)
-
-    descriptors: list[PluginDescriptor] = []
-    for package_dir in sorted(
-        (path for path in directory.iterdir() if path.is_dir()),
-        key=lambda path: path.name.casefold(),
-    ):
-        init_path = package_dir / "__init__.py"
-        module_path = package_dir / f"{package_dir.name}_auditor.py"
-        if not init_path.is_file() or not module_path.is_file():
-            continue
-        module = _load_plugin_module(root, package_dir.name, module_path)
-        runner = getattr(module, "run", None)
-        if not callable(runner):
-            raise PluginDiscoveryError(
-                f"Plugin {package_dir.name!r} must expose callable run(context)."
-            )
-        name = package_dir.name
-        audit_type = _require_non_empty_string(
-            getattr(module, "AUDIT_TYPE", name),
-            f"{name}.AUDIT_TYPE",
-        )
-        plugin_id = _require_non_empty_string(
-            getattr(module, "PLUGIN_ID", f"{name}-auditor"),
-            f"{name}.PLUGIN_ID",
-        )
-        plugin_version = _require_non_empty_string(
-            getattr(module, "PLUGIN_VERSION", "1.0.0"),
-            f"{name}.PLUGIN_VERSION",
-        )
-        raw_allowed = getattr(module, "_ALLOWED_CONTEXT_FIELDS", ())
-        allowed_fields = frozenset(raw_allowed) if isinstance(raw_allowed, (set, frozenset, list, tuple)) else frozenset()
-        descriptors.append(
-            PluginDescriptor(
-                name=name,
-                audit_type=audit_type,
-                plugin_id=plugin_id,
-                plugin_version=plugin_version,
-                package_dir=package_dir,
-                module_path=module_path,
-                runner=runner,
-                module=module,
-                allowed_context_fields=allowed_fields,
-            )
-        )
-    if not descriptors:
-        raise PluginDiscoveryError(
-            f"No auditor plugins were discovered in {directory}."
-        )
-    duplicate_ids = _duplicates(plugin.plugin_id for plugin in descriptors)
-    if duplicate_ids:
-        raise PluginDiscoveryError(
-            f"Duplicate plugin identifiers discovered: {sorted(duplicate_ids)}."
-        )
-    return descriptors
+    """Compatibility wrapper around canonical Registry discovery."""
+    registry = UAAFRegistry(
+        framework_root=framework_root,
+        plugins_dir=plugins_dir,
+    )
+    return list(registry.discover_plugins())
 
 
 def select_plugins(
     discovered: Sequence[PluginDescriptor],
     auditors: str | Sequence[str],
 ) -> list[PluginDescriptor]:
-    """Select auditors while preserving deterministic discovery order."""
-    selectors = _split_csv(auditors)
-    if not selectors or selectors == ["all"]:
-        return list(discovered)
-    if "all" in selectors:
-        raise ValueError("'all' cannot be combined with explicit auditor names.")
+    """Compatibility wrapper around canonical Registry selection.
 
-    normalized = [_normalize_selector(item) for item in selectors]
-    if len(normalized) != len(set(normalized)):
-        raise ValueError("Auditor selectors must not contain duplicates.")
-
-    alias_index: dict[str, PluginDescriptor] = {}
-    ambiguous: set[str] = set()
+    The wrapper retains the pre-3.2 duplicate-selector rejection expected by
+    existing direct callers. The Registry method itself follows the new
+    contract and deduplicates selectors while preserving deterministic plugin
+    order.
+    """
+    registry = UAAFRegistry()
     for plugin in discovered:
-        for alias in plugin.aliases:
-            existing = alias_index.get(alias)
-            if existing is not None and existing.plugin_id != plugin.plugin_id:
-                ambiguous.add(alias)
-            else:
-                alias_index[alias] = plugin
-    for alias in ambiguous:
-        alias_index.pop(alias, None)
-
-    selected_ids: set[str] = set()
-    unknown: list[str] = []
-    for selector in normalized:
-        plugin = alias_index.get(selector)
-        if plugin is None:
-            unknown.append(selector)
-        else:
-            selected_ids.add(plugin.plugin_id)
-    if unknown:
-        available = ", ".join(plugin.name for plugin in discovered)
-        raise ValueError(
-            f"Unknown auditor selector(s): {unknown}. Available: {available}."
+        registry.register_plugin(plugin)
+    return list(
+        registry.select_plugins(
+            auditors,
+            reject_duplicate_selectors=True,
         )
-    return [plugin for plugin in discovered if plugin.plugin_id in selected_ids]
-
+    )
 
 def build_plugin_context(
     *,
@@ -655,24 +572,6 @@ def _parse_yaml_scalar(value: str) -> Any:
     return value
 
 
-def _load_plugin_module(root: Path, name: str, module_path: Path) -> ModuleType:
-    module_name = f"plugins.{name}.{name}_auditor"
-    existing = sys.modules.get(module_name)
-    if existing is not None and Path(getattr(existing, "__file__", "")).resolve() == module_path.resolve():
-        return existing
-    spec = importlib.util.spec_from_file_location(module_name, module_path)
-    if spec is None or spec.loader is None:
-        raise PluginDiscoveryError(f"Cannot create import specification for {module_path}.")
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[module_name] = module
-    try:
-        spec.loader.exec_module(module)
-    except Exception:
-        sys.modules.pop(module_name, None)
-        raise
-    return module
-
-
 def _build_runtime(
     *,
     project_path: Path,
@@ -680,10 +579,14 @@ def _build_runtime(
     workspace_dir: Path,
     selected_plugins: Sequence[PluginDescriptor],
     plugin_contexts: Mapping[str, dict[str, Any]],
+    registry: UAAFRegistry | None = None,
 ):
-    registry = UAAFRegistry()
+    runtime_registry = registry if registry is not None else UAAFRegistry()
     for plugin in selected_plugins:
-        registry.register_processor(_processor_type_for(plugin))
+        runtime_registry.register_processor(
+            _processor_type_for(plugin),
+            replace=True,
+        )
     profile = AuditProfile(
         profile_id=PROFILE_ID,
         name="UAAF Unified CLI",
@@ -693,8 +596,8 @@ def _build_runtime(
         plugin_ids=tuple(plugin.plugin_id for plugin in selected_plugins),
         configuration={"auditor_count": len(selected_plugins)},
     )
-    registry.register_profile(profile)
-    kernel = UAAFKernel(registry=registry)
+    runtime_registry.register_profile(profile, replace=True)
+    kernel = UAAFKernel(registry=runtime_registry)
     return kernel.create_runtime(
         target_path=project_path,
         profile_id=PROFILE_ID,
@@ -806,16 +709,6 @@ def _require_directory(value: str | Path, field_name: str) -> Path:
     return path
 
 
-def _require_non_empty_string(value: Any, field_name: str) -> str:
-    if not isinstance(value, str) or not value.strip():
-        raise PluginDiscoveryError(f"{field_name} must be a non-empty string.")
-    return value.strip()
-
-
-def _normalize_selector(value: str) -> str:
-    return value.strip().casefold().replace("_", "-")
-
-
 def _split_csv(value: Any) -> list[str]:
     if value is None:
         return []
@@ -846,16 +739,6 @@ def _split_csv_preserve_case(value: Any) -> list[str]:
             if part.strip()
         )
     return items
-
-
-def _duplicates(values: Iterable[str]) -> set[str]:
-    seen: set[str] = set()
-    duplicates: set[str] = set()
-    for value in values:
-        if value in seen:
-            duplicates.add(value)
-        seen.add(value)
-    return duplicates
 
 
 def _utc_now_iso() -> str:

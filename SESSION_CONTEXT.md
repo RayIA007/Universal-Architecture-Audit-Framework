@@ -2,9 +2,9 @@
 
 ## 1. Estado actual del proyecto
 
-> Última actualización: 2026-08-03
-> Última sesión completada: Fase 3.1 — Orchestrator / CLI unificado
-> Próxima sesión: Fase 3.2 — Plugin Registry dinámico
+> Última actualización: 2026-08-04
+> Última sesión completada: Fase 3.2 — Plugin Registry dinámico
+> Próxima sesión: Fase 3.3 — Configuración global
 
 ---
 
@@ -54,15 +54,15 @@ La primera fase estableció el contrato principal de auditoría arquitectónica 
 ### 🚧 FASE 3 EN CURSO — Consolidación y CLI
 
 * ✅ **3.1 Orchestrator / CLI unificado — COMPLETADA**.
-* ⏳ **3.2 Plugin Registry dinámico — SIGUIENTE OBJETIVO**.
-* ⏳ **3.3 Configuración global**.
+* **3.2 Plugin Registry dinámico — ✅ COMPLETADA**.
+* **3.3 Configuración global — ⏳ SIGUIENTE OBJETIVO**.
 * ⏳ **3.4 Integración CI/CD**.
 * ⏳ **3.5 Exportación SARIF**.
 * ⏳ **3.6 Documentación pública**.
 
 ### Validación acumulada
 
-* **577 tests deterministas, todos pasando**.
+* **634 tests deterministas, todos pasando**.
 * Plataforma validada:
 
   * Windows.
@@ -471,7 +471,7 @@ Se agregó una prueba de regresión para expresiones AST que no contienen string
 ### 6.6 Validación final
 
 * Suite de Documentation Auditor: 57 tests pasando.
-* Suite completa del repositorio: 577 tests pasando.
+* Suite completa del repositorio: 634 tests pasando.
 * Cinco plugins descubiertos.
 * Cinco plugins ejecutados.
 * Cero errores internos de plugins.
@@ -568,8 +568,8 @@ Estas exclusiones no eliminan la deuda técnica. Únicamente permiten diferencia
 | #   | Objetivo                     | Archivo(s) previstos               | Estado               |
 | --- | ---------------------------- | ---------------------------------- | -------------------- |
 | 3.1 | Orchestrator / CLI unificado | `orchestrator.py`, `cli.py`, tests | ✅ COMPLETADA         |
-| 3.2 | Plugin Registry dinámico     | `registry.py`, integración y tests | ⏳ SIGUIENTE OBJETIVO |
-| 3.3 | Configuración global         | `uaaf.yaml` / `[tool.uaaf]`        | ⏳ PENDIENTE          |
+| 3.2 | Plugin Registry dinámico     | `registry.py`, integración y tests | ✅ COMPLETADA |
+| 3.3 | Configuración global         | `uaaf.yaml` / `[tool.uaaf]`        | ⏳ SIGUIENTE OBJETIVO          |
 | 3.4 | CI/CD Integration            | `.github/workflows/uaaf.yml`       | ⏳ PENDIENTE          |
 | 3.5 | Exportación SARIF            | `sarif_exporter.py`                | ⏳ PENDIENTE          |
 | 3.6 | Documentación pública        | `README.md`, `docs/`               | ⏳ PENDIENTE          |
@@ -619,7 +619,7 @@ Debe preservarse:
 * Los cinco plugins existentes.
 * La integración con `RuntimeContext`.
 * La generación Markdown y JSON.
-* Los 577 tests actualmente pasando.
+* Los 634 tests actualmente pasando.
 
 ---
 
@@ -643,7 +643,7 @@ python -m pytest -q
 Resultado actual esperado:
 
 ```text
-577 passed
+634 passed in 11.56s
 ```
 
 ### Ayuda de la CLI
@@ -731,7 +731,126 @@ exit code 0
 * Inferencia de raíz corregida en Windows.
 * Compatibilidad con Python 3.14 corregida.
 * Prueba de regresión AST agregada.
-* Suite completa: 577 tests pasando.
+* Suite completa: 634 tests pasando.
 * Validación operativa: 941 warnings, 0 critical, 0 error y exit code 0.
 * Fase 3.1 completada.
-* Próximo objetivo: Fase 3.2 — Plugin Registry dinámico.
+* Próximo objetivo: Fase 3.3 — Configuración global.
+
+---
+
+<!-- UAAF_PHASE_3_2_SESSION_CONTEXT_START -->
+## Cierre validado de la Fase 3.2 — Plugin Registry dinámico
+
+### Estado consolidado
+
+* ✅ **Fase 3.2 — Plugin Registry dinámico: COMPLETADA**.
+* ⏳ **Fase 3.3 — Configuración global: SIGUIENTE OBJETIVO**.
+* Fecha de cierre validado: **2026-08-04**.
+
+### Resultado arquitectónico
+
+La arquitectura canónica de plugins queda establecida como:
+
+```text
+CLI
+  -> UnifiedOrchestrator
+      -> UAAFRegistry
+          -> Plugins
+```
+
+`UAAFRegistry` es ahora la fuente única de verdad para:
+
+* Descubrimiento dinámico bajo `plugins/*/`.
+* Validación estructural de candidatos.
+* Importación dinámica controlada y aislada.
+* Registro, consulta, listado e iteración determinista.
+* Resolución de nombres de CLI, tipos de auditor y `plugin_id`.
+* Selección `all` y selección de subsets.
+* Detección de plugins inválidos, IDs duplicados, aliases ambiguos y nombres desconocidos.
+* Redescubrimiento idempotente y transaccional.
+
+`UnifiedOrchestrator` delega al Registry el descubrimiento y la selección de plugins, conserva la ejecución secuencial y admite inyección de un Registry aislado durante pruebas.
+
+### Archivos implementados
+
+```text
+08_SCRIPTS/uaaf_core/registry.py
+08_SCRIPTS/uaaf_core/orchestrator.py
+09_TESTS/unit/test_registry.py
+```
+
+No fue necesario modificar:
+
+```text
+08_SCRIPTS/uaaf_core/cli.py
+08_SCRIPTS/uaaf_core/audit/audit_result.py
+run.py
+09_TESTS/unit/test_orchestrator.py
+09_TESTS/unit/test_cli.py
+```
+
+### Validación automatizada
+
+Pruebas relacionadas:
+
+```text
+124 passed in 2.80s
+```
+
+Suite completa:
+
+```text
+634 passed in 11.56s
+```
+
+Composición:
+
+* 577 pruebas anteriores preservadas.
+* 57 pruebas nuevas del Plugin Registry y su integración.
+* Cero regresiones.
+
+### Validación operativa de la CLI
+
+```text
+python run.py --help
+Argumentos públicos preservados.
+```
+
+```text
+--auditors all
+5 auditores
+1053 findings totales
+Reportes Markdown y JSON generados
+```
+
+```text
+--auditors architecture,testing,configuration
+3 auditores
+680 findings totales
+Reportes Markdown y JSON generados
+```
+
+### Nota operativa de pytest
+
+No deben permanecer dentro de la raíz del repositorio carpetas de entrega que contengan copias de pruebas con el mismo nombre, por ejemplo:
+
+```text
+UAAF_Fase_3_2/09_TESTS/unit/test_registry.py
+```
+
+Pytest puede intentar importar ambas copias como `test_registry` y producir `import file mismatch`. Después de integrar una entrega, la carpeta temporal y su ZIP deben eliminarse o mantenerse fuera del repositorio.
+
+### Continuidad
+
+La siguiente sesión corresponde a:
+
+```text
+Fase 3.3 — Configuración global
+```
+
+Debe definir una configuración canónica y determinista, preservando la precedencia:
+
+```text
+CLI > archivo de configuración > valores predeterminados
+```
+<!-- UAAF_PHASE_3_2_SESSION_CONTEXT_END -->

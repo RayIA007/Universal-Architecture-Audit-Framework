@@ -389,8 +389,8 @@ Extender el Architecture Auditor con análisis estático semántico avanzado, pr
 | #   | Objetivo                     | Archivos principales               | Estado               |
 | --- | ---------------------------- | ---------------------------------- | -------------------- |
 | 3.1 | Orchestrator / CLI unificado | `orchestrator.py`, `cli.py`, tests | ✅ COMPLETADA         |
-| 3.2 | Plugin Registry dinámico     | `registry.py`, integración y tests | ⏳ SIGUIENTE OBJETIVO |
-| 3.3 | Configuración global         | `uaaf.yaml` / `[tool.uaaf]`        | ⏳ PENDIENTE          |
+| 3.2 | Plugin Registry dinámico     | `registry.py`, integración y tests | ✅ COMPLETADA |
+| 3.3 | Configuración global         | `uaaf.yaml` / `[tool.uaaf]`        | ⏳ SIGUIENTE OBJETIVO          |
 | 3.4 | Integración CI/CD            | GitHub Actions                     | ⏳ PENDIENTE          |
 | 3.5 | Exportación SARIF            | `sarif_exporter.py`                | ⏳ PENDIENTE          |
 | 3.6 | Documentación pública        | `README.md`, `docs/`               | ⏳ PENDIENTE          |
@@ -469,7 +469,7 @@ Crear un entry point único capaz de descubrir, seleccionar, ejecutar y consolid
 * [x] Ampliar `test_documentation_auditor.py`.
 * [x] Ejecutar tests específicos.
 * [x] Ejecutar suite completa.
-* [x] Validar 577 tests pasando.
+* [x] Validar 634 tests pasando.
 * [x] Ejecutar cinco plugins sin errores.
 * [x] Generar Markdown y JSON.
 * [x] Validar `--fail-on`.
@@ -500,7 +500,7 @@ Crear un entry point único capaz de descubrir, seleccionar, ejecutar y consolid
 
 #### Estado
 
-⏳ SIGUIENTE OBJETIVO
+✅ COMPLETADA
 
 #### Objetivo único
 
@@ -524,94 +524,94 @@ El Orchestrator deberá consumir el Registry y dejar de mantener lógica duplica
 
 #### Análisis inicial
 
-* [ ] Leer el contrato actual de `UAAFRegistry`.
-* [ ] Identificar consumidores actuales.
-* [ ] Identificar métodos públicos existentes.
-* [ ] Identificar responsabilidades duplicadas.
-* [ ] Revisar la relación Registry–Kernel.
-* [ ] Revisar la relación Registry–Orchestrator.
-* [ ] Revisar cómo se importan actualmente los plugins.
+* [x] Leer el contrato actual de `UAAFRegistry`.
+* [x] Identificar consumidores actuales.
+* [x] Identificar métodos públicos existentes.
+* [x] Identificar responsabilidades duplicadas.
+* [x] Revisar la relación Registry–Kernel.
+* [x] Revisar la relación Registry–Orchestrator.
+* [x] Revisar cómo se importan actualmente los plugins.
 
 #### Contrato canónico de plugin
 
-* [ ] Definir una representación estable de plugin registrado.
-* [ ] Registrar `plugin_id`.
-* [ ] Registrar nombre.
-* [ ] Registrar versión.
-* [ ] Registrar tipo.
-* [ ] Registrar ruta.
-* [ ] Registrar módulo.
-* [ ] Registrar callable `run`.
-* [ ] Mantener metadatos inmutables cuando sea posible.
-* [ ] Mantener representación determinista.
+* [x] Definir una representación estable de plugin registrado.
+* [x] Registrar `plugin_id`.
+* [x] Registrar nombre.
+* [x] Registrar versión.
+* [x] Registrar tipo.
+* [x] Registrar ruta.
+* [x] Registrar módulo.
+* [x] Registrar callable `run`.
+* [x] Mantener metadatos inmutables cuando sea posible.
+* [x] Mantener representación determinista.
 
 #### Descubrimiento dinámico
 
-* [ ] Descubrir directorios bajo `plugins/*/`.
-* [ ] Ignorar archivos y directorios no válidos.
-* [ ] Validar `__init__.py`.
-* [ ] Validar `<nombre>_auditor.py`.
-* [ ] Importar módulos determinísticamente.
-* [ ] Resolver `run(context)`.
-* [ ] Aislar errores de importación.
-* [ ] Producir errores claros.
-* [ ] No detener todo el descubrimiento por un plugin inválido cuando el contrato permita aislarlo.
+* [x] Descubrir directorios bajo `plugins/*/`.
+* [x] Ignorar archivos y directorios no válidos.
+* [x] Validar `__init__.py`.
+* [x] Validar `<nombre>_auditor.py`.
+* [x] Importar módulos determinísticamente.
+* [x] Resolver `run(context)`.
+* [x] Aislar errores de importación.
+* [x] Producir errores claros.
+* [x] No detener todo el descubrimiento por un plugin inválido cuando el contrato permita aislarlo.
 
 #### Registro
 
-* [ ] Registrar plugins en orden estable.
-* [ ] Rechazar `plugin_id` duplicados.
-* [ ] Evitar registros duplicados.
-* [ ] Permitir repetir el descubrimiento de forma idempotente.
-* [ ] Mantener una fuente única de verdad.
-* [ ] Diferenciar plugin descubierto, válido, registrado e inválido.
+* [x] Registrar plugins en orden estable.
+* [x] Rechazar `plugin_id` duplicados.
+* [x] Evitar registros duplicados.
+* [x] Permitir repetir el descubrimiento de forma idempotente.
+* [x] Mantener una fuente única de verdad.
+* [x] Diferenciar plugin descubierto, válido, registrado e inválido.
 
 #### Consulta y selección
 
-* [ ] Obtener plugin por `plugin_id`.
-* [ ] Listar plugins registrados.
-* [ ] Listar identificadores.
-* [ ] Seleccionar todos.
-* [ ] Seleccionar subsets.
-* [ ] Resolver alias si el contrato lo requiere.
-* [ ] Detectar auditores desconocidos.
-* [ ] Mantener el orden solicitado cuando sea válido.
-* [ ] Mantener orden canónico para `all`.
+* [x] Obtener plugin por `plugin_id`.
+* [x] Listar plugins registrados.
+* [x] Listar identificadores.
+* [x] Seleccionar todos.
+* [x] Seleccionar subsets.
+* [x] Resolver alias si el contrato lo requiere.
+* [x] Detectar auditores desconocidos.
+* [x] Mantener el orden solicitado cuando sea válido.
+* [x] Mantener orden canónico para `all`.
 
 #### Integración con Orchestrator
 
-* [ ] Inyectar o construir `UAAFRegistry`.
-* [ ] Hacer que el Orchestrator consuma el Registry.
-* [ ] Eliminar descubrimiento duplicado.
-* [ ] Preservar selección de auditores.
-* [ ] Preservar ejecución secuencial.
-* [ ] Preservar agregación de resultados.
-* [ ] Preservar reporting.
-* [ ] Preservar errores operativos.
-* [ ] Preservar códigos de salida.
+* [x] Inyectar o construir `UAAFRegistry`.
+* [x] Hacer que el Orchestrator consuma el Registry.
+* [x] Eliminar descubrimiento duplicado.
+* [x] Preservar selección de auditores.
+* [x] Preservar ejecución secuencial.
+* [x] Preservar agregación de resultados.
+* [x] Preservar reporting.
+* [x] Preservar errores operativos.
+* [x] Preservar códigos de salida.
 
 #### Integración con CLI
 
-* [ ] Preservar `--auditors`.
-* [ ] Preservar `--plugins-dir`.
-* [ ] Preservar `--framework-root`.
-* [ ] Preservar mensajes de error.
-* [ ] Preservar ayuda de argumentos.
-* [ ] Preservar `run.py`.
+* [x] Preservar `--auditors`.
+* [x] Preservar `--plugins-dir`.
+* [x] Preservar `--framework-root`.
+* [x] Preservar mensajes de error.
+* [x] Preservar ayuda de argumentos.
+* [x] Preservar `run.py`.
 
 #### Compatibilidad
 
-* [ ] No modificar `AuditResult`.
-* [ ] No modificar el contrato `run(context)`.
-* [ ] No romper `execute()`.
-* [ ] No romper los cinco plugins.
-* [ ] No romper `ReportEngine`.
-* [ ] No romper `RuntimeContext`.
-* [ ] No cambiar códigos de salida.
-* [ ] No cambiar formatos de reporte.
-* [ ] Mantener Windows.
-* [ ] Mantener Python 3.14.
-* [ ] Mantener determinismo.
+* [x] No modificar `AuditResult`.
+* [x] No modificar el contrato `run(context)`.
+* [x] No romper `execute()`.
+* [x] No romper los cinco plugins.
+* [x] No romper `ReportEngine`.
+* [x] No romper `RuntimeContext`.
+* [x] No cambiar códigos de salida.
+* [x] No cambiar formatos de reporte.
+* [x] Mantener Windows.
+* [x] Mantener Python 3.14.
+* [x] Mantener determinismo.
 
 #### Pruebas del Registry
 
@@ -623,27 +623,27 @@ Crear o ampliar:
 
 Casos mínimos:
 
-* [ ] Registry vacío.
-* [ ] Registro válido.
-* [ ] Listado determinista.
-* [ ] Consulta por ID.
-* [ ] Plugin desconocido.
-* [ ] ID duplicado.
-* [ ] Módulo inválido.
-* [ ] Directorio sin `__init__.py`.
-* [ ] Directorio sin auditor.
-* [ ] Auditor sin `run`.
-* [ ] Error de importación.
-* [ ] Descubrimiento repetido.
-* [ ] Idempotencia.
-* [ ] Selección de todos.
-* [ ] Selección de subset.
-* [ ] Orden solicitado.
-* [ ] Integración Registry–Orchestrator.
-* [ ] Integración con plugins reales.
-* [ ] Rutas con espacios.
-* [ ] Rutas Windows.
-* [ ] Resultados deterministas.
+* [x] Registry vacío.
+* [x] Registro válido.
+* [x] Listado determinista.
+* [x] Consulta por ID.
+* [x] Plugin desconocido.
+* [x] ID duplicado.
+* [x] Módulo inválido.
+* [x] Directorio sin `__init__.py`.
+* [x] Directorio sin auditor.
+* [x] Auditor sin `run`.
+* [x] Error de importación.
+* [x] Descubrimiento repetido.
+* [x] Idempotencia.
+* [x] Selección de todos.
+* [x] Selección de subset.
+* [x] Orden solicitado.
+* [x] Integración Registry–Orchestrator.
+* [x] Integración con plugins reales.
+* [x] Rutas con espacios.
+* [x] Rutas Windows.
+* [x] Resultados deterministas.
 
 #### Validación de la sesión 3.2
 
@@ -672,7 +672,7 @@ python -m pytest -q
 Requisito:
 
 ```text
-Los 577 tests existentes deben continuar pasando.
+Los 634 tests existentes deben continuar pasando.
 ```
 
 También deben pasar todas las pruebas nuevas del Registry.
@@ -709,7 +709,7 @@ La Fase 3.2 se considerará terminada cuando:
 
 #### Estado
 
-⏳ PENDIENTE
+⏳ SIGUIENTE OBJETIVO
 
 #### Objetivo
 
@@ -879,7 +879,7 @@ El Registry debe convertirse en la fuente canónica de plugins sin romper:
 * Los cinco plugins existentes.
 * Los códigos de salida.
 * Los reportes.
-* Los 577 tests existentes.
+* Los 634 tests existentes.
 
 ---
 
@@ -914,7 +914,7 @@ La Fase 3.1 — Orchestrator / CLI unificado está terminada:
 - Soporte para --exclude.
 - Códigos de salida 0, 1 y 2.
 - Compatibilidad con Windows y Python 3.14.
-- 577 tests deterministas pasando.
+- 634 tests deterministas pasando.
 
 Lee PRIMERO:
 1. SESSION_CONTEXT.md
@@ -949,7 +949,7 @@ Debes preservar:
 - Reportes Markdown y JSON.
 - Los cinco plugins existentes.
 - Orden determinista.
-- Los 577 tests existentes.
+- Los 634 tests existentes.
 
 Crea o amplía 09_TESTS/unit/test_registry.py con tests deterministas.
 
@@ -960,3 +960,119 @@ Limitaciones:
 - Indica el path de cada archivo.
 - No modifiques componentes no relacionados.
 ```
+
+---
+
+<!-- UAAF_PHASE_3_2_SESSION_PLAN_START -->
+## Registro de cierre — Fase 3.2
+
+### Estado
+
+✅ **COMPLETADA el 2026-08-04**.
+
+### Entregables completados
+
+* [x] `08_SCRIPTS/uaaf_core/registry.py` convertido en Registry canónico de plugins.
+* [x] `08_SCRIPTS/uaaf_core/orchestrator.py` integrado mediante delegación e inyección de dependencias.
+* [x] `09_TESTS/unit/test_registry.py` creado con 57 pruebas nuevas.
+* [x] Descubrimiento de los cinco plugins reales.
+* [x] Selección `all` y subsets.
+* [x] Detección de plugins inválidos, IDs duplicados, aliases ambiguos y nombres desconocidos.
+* [x] Contratos de CLI, `RuntimeContext`, `AuditResult`, Report Engine y `run.py` preservados.
+* [x] Reportes Markdown y JSON preservados.
+* [x] Códigos de salida `0`, `1` y `2` preservados.
+* [x] Cero regresiones.
+
+### Resultado final validado
+
+```text
+124 pruebas relacionadas pasando
+634 pruebas totales pasando en 11.56s
+```
+
+Composición:
+
+* 577 pruebas anteriores preservadas.
+* 57 pruebas nuevas agregadas.
+
+Smoke tests:
+
+```text
+--auditors all
+5 auditores
+1053 findings
+Markdown y JSON generados
+
+--auditors architecture,testing,configuration
+3 auditores
+680 findings
+Markdown y JSON generados
+```
+
+### Siguiente objetivo
+
+## Fase 3.3 — Configuración global
+
+Objetivo único: implementar una configuración global canónica y definir su precedencia respecto de los argumentos de la CLI.
+
+La precedencia requerida será:
+
+```text
+CLI > archivo de configuración > valores predeterminados
+```
+
+Debe analizarse e implementar, sin adelantar fases posteriores:
+
+* Contrato de `uaaf.yaml`.
+* Posible soporte de `[tool.uaaf]` en `pyproject.toml`.
+* Auditores seleccionados.
+* Exclusiones.
+* Formatos de salida.
+* Severidades de `--fail-on`.
+* Directorio de salida.
+* Validación de claves desconocidas y valores inválidos.
+* Errores claros y deterministas con código de salida `2`.
+* Integración con CLI, Orchestrator, `RuntimeContext` y `UAAFRegistry`.
+* Compatibilidad hacia atrás cuando no exista archivo de configuración.
+* Preservación de los 634 tests existentes.
+
+### Archivos que deben revisarse primero en la Fase 3.3
+
+1. `SESSION_CONTEXT.md`.
+2. `UAAF_SESSION_PLAN.md`.
+3. `08_SCRIPTS/uaaf_core/cli.py`.
+4. `08_SCRIPTS/uaaf_core/orchestrator.py`.
+5. `08_SCRIPTS/uaaf_core/registry.py`.
+6. `08_SCRIPTS/uaaf_core/runtime/runtime.py`.
+7. `08_SCRIPTS/uaaf_core/runtime/runtime_context.py`.
+8. `08_SCRIPTS/uaaf_core/models/profile.py`.
+9. `09_TESTS/unit/test_cli.py`.
+10. `09_TESTS/unit/test_orchestrator.py`.
+11. `09_TESTS/unit/test_registry.py`.
+
+### Prompt de continuidad
+
+```text
+ROL: Actúa como Arquitecto Senior de Software e IA, Ingeniero Full Stack especialista en Python, LLMs, sistemas de plugins y configuración, Prompt Engineer, Context Engineer y Agent Engineer.
+
+Contexto: Estoy continuando el proyecto UAAF — Universal Architecture Audit Framework.
+
+Estado validado:
+- Fase 1 completada.
+- Fase 2 completada.
+- Fase 3.1 — Orchestrator / CLI unificado completada.
+- Fase 3.2 — Plugin Registry dinámico completada.
+- UAAFRegistry es la fuente canónica de plugins.
+- El Orchestrator delega descubrimiento y selección al Registry.
+- Los cinco plugins reales funcionan.
+- 634 tests deterministas pasando.
+
+Objetivo único de ESTA sesión:
+Implementar la Fase 3.3 — Configuración global.
+
+Define una configuración canónica para UAAF y la precedencia exacta:
+CLI > archivo de configuración > valores predeterminados.
+
+Lee primero SESSION_CONTEXT.md, UAAF_SESSION_PLAN.md, cli.py, orchestrator.py, registry.py, los componentes de runtime y las pruebas relacionadas. Conserva todos los contratos públicos, los cinco plugins, los reportes, los códigos de salida y los 634 tests existentes. No avances a GitHub Actions, SARIF, paralelización, caché, auditoría incremental ni auto-remediation.
+```
+<!-- UAAF_PHASE_3_2_SESSION_PLAN_END -->
