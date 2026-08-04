@@ -659,6 +659,11 @@ class TestUtilityFunctions:
         tree = ast.parse("x = 1\n")
         assert _extract_docstring(tree) is None
 
+    def test_extract_docstring_non_string_expression_python_314_safe(self):
+        """Non-string expressions must not access removed AST aliases."""
+        tree = ast.parse("...\n")
+        assert _extract_docstring(tree) is None
+
     def test_extract_docstring_class(self):
         tree = ast.parse(
             'class MyClass:\n    \"\"\"Class doc.\"\"\"\n    pass\n'

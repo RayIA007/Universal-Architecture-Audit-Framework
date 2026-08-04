@@ -613,13 +613,12 @@ def _extract_docstring(node: ast.AST) -> str | None:
         return None
 
     first = node.body[0]
-    if isinstance(first, ast.Expr):
-        value = first.value
-        if isinstance(value, ast.Constant) and isinstance(value.value, str):
-            return value.value
-        # Python < 3.8 compatibility
-        if isinstance(value, ast.Str):  # type: ignore[attr-defined]
-            return value.s  # type: ignore[attr-defined]
+    if not isinstance(first, ast.Expr):
+        return None
+
+    value = first.value
+    if isinstance(value, ast.Constant) and isinstance(value.value, str):
+        return value.value
 
     return None
 

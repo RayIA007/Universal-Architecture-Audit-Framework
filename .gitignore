@@ -3,3 +3,5 @@ __pycache__/
 *.log
 .env
 venv/
+07_OUTPUTS/*_uaaf-orchestrator_consolidated.md
+07_OUTPUTS/*_uaaf-orchestrator_consolidated.json
