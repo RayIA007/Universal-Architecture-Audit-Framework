@@ -1,281 +1,737 @@
-## 1. Estado actual del proyecto > Última actualización: 2026-08-02 > Última sesión completada: Fase 2.2 — AI Systems Auditor Plugin > Próxima sesión: Fase 2.3 — Features semánticas avanzadas del Architecture Auditor
----
+# UAAF — SESSION CONTEXT
 
-### ✅ FASE 1 COMPLETADA — Architecture Auditor MVP 
-- **Test Suite A**: Contrato y configuración — 43 tests. 
-- **Test Suite B**: Descubrimiento e índice — 27 tests. 
-- **Test Suite C**: Imports y grafo — 28 tests. 
-- **Test Suite D**: Las 4 reglas — 34 tests. 
-- **Test Suite E**: Robustez — 19 tests. 
-- **Test Suite F**: Integración con Runtime Pipeline — completada. 
-- **Total Fase 1**: 151+ tests deterministas, todos pasando. 
-- **Plugin**: `architecture_auditor.py` v1.5.1 estable y canónico. 
-### ✅ FASE 2 EN CURSO - 
-**2.1 Report Engine** — `08_SCRIPTS/uaaf_core/reporting/` - ✅ COMPLETADO - 33 tests deterministas. 
-**2.2 Nuevos plugins** — `plugins/*/` 
-- ✅ **Documentation Auditor** — `plugins/documentation/` — v1.0.0 — 56 tests. 
-- ✅ **Testing Auditor** — `plugins/testing/` — v1.0.0 — 39 tests. 
-- ✅ **Configuration Auditor** — `plugins/configuration/` — v1.0.0 — 56 tests. 
-- ✅ **AI Systems Auditor** — `plugins/ai_systems/` — v1.0.0 — 79 tests. 
-- ✅ **Fase 2.2 COMPLETADA**. 
-- **2.3 Features semánticas avanzadas** 
-- Extensión de `plugins/architecture/architecture_auditor.py`. 
-- Complejidad ciclomática. 
-- Detección conservadora de dead code. 
-- Métricas avanzadas de mantenibilidad. 
-- ⏳ PENDIENTE — próximo objetivo.
+## 1. Estado actual del proyecto
 
-**Total acumulado del proyecto: 414+ tests deterministas, todos pasando.**
-
-### 📁 Archivos clave del proyecto 
-| Archivo | Versión | Descripción | 
-|---------|---------|-------------| 
-| `plugins/architecture/architecture_auditor.py` | 1.5.1 | Plugin principal con reglas arquitectónicas y findings canónicos | | `plugins/architecture/__init__.py` | — | Bootstrap de `sys.path` para importar `uaaf_core` | | `run.py` | — | Entry point del CLI | | `09_TESTS/unit/test_architecture_contract.py` | — | Suite A: Contrato y configuración | | `09_TESTS/unit/test_architecture_discovery.py` | — | Suite B: Descubrimiento e índice | | `09_TESTS/unit/test_architecture_imports.py` | — | Suite C: Imports y grafo | | `09_TESTS/unit/test_architecture_rules.py` | — | Suite D: Reglas arquitectónicas | | `09_TESTS/unit/test_architecture_robustness.py` | — | Suite E: Robustez | | `09_TESTS/integration/test_architecture_pipeline.py` | — | Suite F: Integración con Runtime Pipeline | | `08_SCRIPTS/uaaf_core/reporting/report_engine.py` | 1.0.0 | Motor de generación de reportes Markdown y JSON | | `08_SCRIPTS/uaaf_core/reporting/__init__.py` | — | Exports del paquete reporting | | `09_TESTS/unit/test_report_engine.py` | — | Suite G: Report Engine — 33 tests | | `plugins/documentation/documentation_auditor.py` | 1.0.0 | Plugin de auditoría de documentación | | `plugins/documentation/__init__.py` | — | Bootstrap del plugin documentation | | `09_TESTS/unit/test_documentation_auditor.py` | — | Suite H: Documentation Auditor — 56 tests | | `plugins/testing/testing_auditor.py` | 1.0.0 | Plugin de auditoría de tests | | `plugins/testing/__init__.py` | — | Bootstrap del plugin testing | | `09_TESTS/unit/test_testing_auditor.py` | — | Suite I: Testing Auditor — 39 tests | | `plugins/configuration/configuration_auditor.py` | 1.0.0 | Plugin de auditoría de configuración | | `plugins/configuration/__init__.py` | — | Bootstrap del plugin configuration | | `09_TESTS/unit/test_configuration_auditor.py` | — | Suite J: Configuration Auditor — 56 tests | | `plugins/ai_systems/ai_systems_auditor.py` | 1.0.0 | Plugin de auditoría estática de sistemas de IA y LLMs | | `plugins/ai_systems/__init__.py` | — | Bootstrap del plugin AI Systems | | `09_TESTS/unit/test_ai_systems_auditor.py` | — | Suite K: AI Systems Auditor
-📁 Archivos clave del proyecto
-Archivo	Versión	Descripción
-plugins/architecture/architecture_auditor.py	1.6.0	Plugin principal de auditoría arquitectónica con reglas estructurales, complejidad ciclomática, dead code conservador y métricas semánticas
-plugins/architecture/__init__.py	—	Bootstrap de sys.path para importar uaaf_core
-run.py	—	Entry point del CLI
-09_TESTS/unit/test_architecture_contract.py	—	Suite A: Contrato y configuración
-09_TESTS/unit/test_architecture_discovery.py	—	Suite B: Descubrimiento e índice
-09_TESTS/unit/test_architecture_imports.py	—	Suite C: Imports y grafo
-09_TESTS/unit/test_architecture_rules.py	—	Suite D: Reglas arquitectónicas
-09_TESTS/unit/test_architecture_robustness.py	—	Suite E: Robustez
-09_TESTS/integration/test_architecture_pipeline.py	—	Suite F: Integración con Runtime Pipeline
-09_TESTS/unit/test_architecture_semantics.py	—	Suite L: Features semánticas avanzadas — 74 tests
-08_SCRIPTS/uaaf_core/reporting/report_engine.py	1.0.0	Motor de generación de reportes Markdown y JSON
-08_SCRIPTS/uaaf_core/reporting/__init__.py	—	Exports del paquete reporting
-09_TESTS/unit/test_report_engine.py	—	Suite G: Report Engine — 33 tests
-plugins/documentation/documentation_auditor.py	1.0.0	Plugin de auditoría de documentación
-09_TESTS/unit/test_documentation_auditor.py	—	Suite H: Documentation Auditor — 56 tests
-plugins/testing/testing_auditor.py	1.0.0	Plugin de auditoría de tests
-09_TESTS/unit/test_testing_auditor.py	—	Suite I: Testing Auditor — 39 tests
-plugins/configuration/configuration_auditor.py	1.0.0	Plugin de auditoría de configuración
-09_TESTS/unit/test_configuration_auditor.py	—	Suite J: Configuration Auditor — 56 tests
-plugins/ai_systems/ai_systems_auditor.py	1.0.0	Plugin de auditoría estática de sistemas de IA y LLMs
-09_TESTS/unit/test_ai_systems_auditor.py	—	Suite K: AI Systems Auditor — 79 tests
-
-### 🔧 Configuración técnica 
-- Python 3.12. 
-- Windows. 
-- Rutas normalizadas a POSIX mediante `Path.as_posix()`. 
-- Bootstrap: `sys.path.insert(0, str(_SCRIPTS_DIR))`. 
-- `uaaf_core` se importa desde `08_SCRIPTS/uaaf_core/`. 
-- Análisis estático basado principalmente en AST. 
-- Tests aislados mediante `tempfile.TemporaryDirectory`. 
-- Resultados deterministas y ordenados.
----
-
-## 2. Arquitectura clave (archivos del repo que NO deben modificarse sin coordinación)
-
-### Modelo canónico
-- `08_SCRIPTS/uaaf_core/audit/audit_result.py`
-  - `AuditStatus` (Enum): `COMPLETED`, `COMPLETED_WITH_FINDINGS`, `COMPLETED_WITH_ERRORS`, `FAILED`
-  - `FindingSeverity` (Enum): `INFO`, `WARNING`, `ERROR`, `CRITICAL`
-  - `AuditFinding` (dataclass frozen): `code`, `severity`, `path`, `message`, `details`
-  - `AuditExecution` (dataclass): `started_at`, `completed_at`, `duration_ms`
-  - `AuditResult` (dataclass): `plugin_id`, `plugin_version`, `audit_type`, `status`, `summary`, `metrics`, `findings`, `errors`, `execution`
-  - `validate_audit_result()` — validador estricto de contrato
-
-### Runtime Pipeline
-- `08_SCRIPTS/uaaf_core/runtime/runtime.py` — `UAAFRuntime` y `RuntimeContext`
-- `08_SCRIPTS/uaaf_core/kernel.py` — `UAAFKernel`
-- `08_SCRIPTS/uaaf_core/registry.py` — `UAAFRegistry`
-
-### Patch Engine
-- `08_SCRIPTS/uaaf_tools/patch_engine/` — motor de patches del proyecto
+> Última actualización: 2026-08-03
+> Última sesión completada: Fase 3.1 — Orchestrator / CLI unificado
+> Próxima sesión: Fase 3.2 — Plugin Registry dinámico
 
 ---
 
-## 3. Códigos de finding actuales
+### ✅ FASE 1 COMPLETADA — Architecture Auditor MVP
+
+La primera fase estableció el contrato principal de auditoría arquitectónica y su integración con el runtime de UAAF.
+
+* **Suite A — Contrato y configuración**: completada.
+* **Suite B — Descubrimiento e índice**: completada.
+* **Suite C — Imports y grafo**: completada.
+* **Suite D — Reglas arquitectónicas**: completada.
+* **Suite E — Robustez**: completada.
+* **Suite F — Integración con Runtime Pipeline**: completada.
+* **Suite L — Features semánticas avanzadas**: completada.
+* **Architecture Auditor**: versión 1.6.0 estable y canónica.
+* **Resultado conjunto del Architecture Auditor**: 232 tests pasando.
+
+### ✅ FASE 2 COMPLETADA — Extensión de auditores y reporting
+
+#### 2.1 Report Engine
+
+* Generación de reportes Markdown.
+* Generación de reportes JSON.
+* Serialización determinista.
+* Validación de resultados canónicos.
+* 33 tests deterministas.
+
+#### 2.2 Nuevos plugins
+
+* ✅ Documentation Auditor.
+* ✅ Testing Auditor.
+* ✅ Configuration Auditor.
+* ✅ AI Systems Auditor.
+* ✅ Integración con el contrato canónico `AuditResult`.
+
+#### 2.3 Features semánticas avanzadas
+
+* Complejidad ciclomática.
+* Detección conservadora de dead code.
+* Métricas avanzadas de mantenibilidad.
+* Análisis de funciones síncronas y asíncronas.
+* Métricas por módulo.
+* Resultados ordenados y deterministas.
+* Findings `ARCH-COMPLEX-001` y `ARCH-DEAD-001`.
+* Compatibilidad preservada con las Suites A–F.
+
+### 🚧 FASE 3 EN CURSO — Consolidación y CLI
+
+* ✅ **3.1 Orchestrator / CLI unificado — COMPLETADA**.
+* ⏳ **3.2 Plugin Registry dinámico — SIGUIENTE OBJETIVO**.
+* ⏳ **3.3 Configuración global**.
+* ⏳ **3.4 Integración CI/CD**.
+* ⏳ **3.5 Exportación SARIF**.
+* ⏳ **3.6 Documentación pública**.
+
+### Validación acumulada
+
+* **577 tests deterministas, todos pasando**.
+* Plataforma validada:
+
+  * Windows.
+  * Python 3.14.6.
+  * pytest 9.1.1.
+* Cinco plugins ejecutados correctamente.
+* Sin errores internos de plugins.
+* Sin regresiones detectadas en las fases anteriores.
+
+---
+
+## 2. Archivos clave del proyecto
+
+| Archivo                                              |   Versión | Descripción                                                     |
+| ---------------------------------------------------- | --------: | --------------------------------------------------------------- |
+| `run.py`                                             |         — | Entry point principal; delega en `uaaf_core.cli.main()`         |
+| `08_SCRIPTS/uaaf_core/audit/audit_result.py`         |  Canónico | Contrato principal de resultados y findings                     |
+| `08_SCRIPTS/uaaf_core/runtime/runtime.py`            |  Canónico | Runtime y construcción del contexto de ejecución                |
+| `08_SCRIPTS/uaaf_core/kernel.py`                     |  Canónico | Coordinación de componentes centrales                           |
+| `08_SCRIPTS/uaaf_core/registry.py`                   | Existente | Registry que será consolidado en la Fase 3.2                    |
+| `08_SCRIPTS/uaaf_core/orchestrator.py`               |     1.0.0 | Descubrimiento, selección, ejecución y consolidación de plugins |
+| `08_SCRIPTS/uaaf_core/cli.py`                        |     1.0.0 | CLI unificada, configuración y códigos de salida                |
+| `08_SCRIPTS/uaaf_core/reporting/report_engine.py`    |     1.0.0 | Motor de reportes Markdown y JSON                               |
+| `08_SCRIPTS/uaaf_core/reporting/__init__.py`         |         — | Exports del paquete de reporting                                |
+| `plugins/architecture/architecture_auditor.py`       |     1.6.0 | Auditor arquitectónico y análisis semántico                     |
+| `plugins/architecture/__init__.py`                   |         — | Bootstrap del Architecture Auditor                              |
+| `plugins/documentation/documentation_auditor.py`     |     1.0.0 | Auditor de documentación compatible con Python 3.14             |
+| `plugins/documentation/__init__.py`                  |         — | Bootstrap del Documentation Auditor                             |
+| `plugins/testing/testing_auditor.py`                 |     1.0.0 | Auditor de testing                                              |
+| `plugins/testing/__init__.py`                        |         — | Bootstrap del Testing Auditor                                   |
+| `plugins/configuration/configuration_auditor.py`     |     1.0.0 | Auditor de configuración                                        |
+| `plugins/configuration/__init__.py`                  |         — | Bootstrap del Configuration Auditor                             |
+| `plugins/ai_systems/ai_systems_auditor.py`           |     1.0.0 | Auditor estático de sistemas de IA y LLMs                       |
+| `plugins/ai_systems/__init__.py`                     |         — | Bootstrap del AI Systems Auditor                                |
+| `09_TESTS/unit/test_architecture_contract.py`        |         — | Suite A: contrato y configuración                               |
+| `09_TESTS/unit/test_architecture_discovery.py`       |         — | Suite B: descubrimiento e índice                                |
+| `09_TESTS/unit/test_architecture_imports.py`         |         — | Suite C: imports y grafo                                        |
+| `09_TESTS/unit/test_architecture_rules.py`           |         — | Suite D: reglas arquitectónicas                                 |
+| `09_TESTS/unit/test_architecture_robustness.py`      |         — | Suite E: robustez                                               |
+| `09_TESTS/integration/test_architecture_pipeline.py` |         — | Suite F: integración                                            |
+| `09_TESTS/unit/test_report_engine.py`                |         — | Suite G: Report Engine                                          |
+| `09_TESTS/unit/test_documentation_auditor.py`        |         — | Suite H: Documentation Auditor, 57 tests                        |
+| `09_TESTS/unit/test_testing_auditor.py`              |         — | Suite I: Testing Auditor                                        |
+| `09_TESTS/unit/test_configuration_auditor.py`        |         — | Suite J: Configuration Auditor                                  |
+| `09_TESTS/unit/test_ai_systems_auditor.py`           |         — | Suite K: AI Systems Auditor                                     |
+| `09_TESTS/unit/test_architecture_semantics.py`       |         — | Suite L: features semánticas avanzadas                          |
+| `09_TESTS/unit/test_orchestrator.py`                 |         — | Pruebas deterministas del Orchestrator                          |
+| `09_TESTS/unit/test_cli.py`                          |         — | Pruebas deterministas de la CLI                                 |
+
+---
+
+## 3. Configuración técnica
+
+* Sistema operativo validado: Windows.
+* Python validado: 3.14.6.
+* pytest validado: 9.1.1.
+* Rutas de findings normalizadas a formato POSIX.
+* `uaaf_core` se importa desde `08_SCRIPTS/uaaf_core/`.
+* Bootstrap mediante inserción controlada de `08_SCRIPTS` en `sys.path`.
+* Análisis estático basado principalmente en AST.
+* Uso de nodos AST canónicos compatibles con Python 3.14.
+* Tests aislados mediante `TemporaryDirectory` y `tmp_path`.
+* Resultados ordenados y deterministas.
+* Entry point principal: `python run.py`.
+* Reportes generados en `07_OUTPUTS/`.
+* Contrato público principal: `run(context) -> dict[str, Any]`.
+* Wrapper público de plugins: `execute()`.
+* No se deben añadir dependencias externas sin una justificación explícita.
+
+---
+
+## 4. Contratos y arquitectura que deben preservarse
+
+### 4.1 AuditResult
+
+Todos los plugins deben devolver un resultado compatible con el contrato canónico definido en:
+
+```text
+08_SCRIPTS/uaaf_core/audit/audit_result.py
+```
+
+El resultado debe conservar, según corresponda:
+
+* `plugin_id`.
+* `status`.
+* `summary`.
+* `findings`.
+* `metrics`.
+* `errors`.
+* Metadatos de ejecución.
+* Rutas relativas normalizadas.
+* Orden determinista.
+
+### 4.2 Findings
+
+Cada finding debe conservar una estructura compatible con el contrato canónico y contener los datos necesarios para:
+
+* Identificar el plugin emisor.
+* Identificar la regla o código.
+* Representar la severidad.
+* Describir el problema.
+* Localizar el archivo o elemento afectado.
+* Incluir detalles deterministas.
+* Ser serializado correctamente a Markdown y JSON.
+
+### 4.3 RuntimeContext
+
+El Orchestrator debe construir y distribuir un contexto canónico de ejecución que preserve:
+
+* Ruta del proyecto.
+* Configuración global.
+* Directorios ignorados.
+* Metadatos del framework.
+* Parámetros necesarios por los plugins.
+* Compatibilidad con el contrato `run(context)` existente.
+
+### 4.4 Determinismo
+
+Debe preservarse:
+
+* Orden estable de descubrimiento.
+* Orden estable de ejecución.
+* Orden estable de plugins seleccionados.
+* Orden estable de findings.
+* Rutas relativas POSIX en resultados.
+* Reportes reproducibles salvo por datos deliberadamente variables, como timestamps.
+
+---
+
+## 5. Plugins disponibles
+
 ### Architecture Auditor
-| Código | Regla | Severidad |
-|--------|-------|-----------|
-| `ARCH-CYCLE-001` | Ciclo de dependencia | `ERROR` |
-| `ARCH-LAYER-001` | Violación de capa | `WARNING` |
-| `ARCH-FORBIDDEN-001` | Import prohibido | `ERROR` |
-| `ARCH-INIT-001` | `__init__.py` faltante | `WARNING` |
+
+Ubicación:
+
+```text
+plugins/architecture/architecture_auditor.py
+```
+
+Capacidades principales:
+
+* Descubrimiento de módulos Python.
+* Índice de imports.
+* Grafo de dependencias.
+* Detección de ciclos.
+* Validación de capas.
+* Imports prohibidos.
+* Validación de `__init__.py`.
+* Complejidad ciclomática.
+* Dead code conservador.
+* Métricas de mantenibilidad.
+
+Códigos principales:
+
+| Código               | Regla                              | Severidad |
+| -------------------- | ---------------------------------- | --------- |
+| `ARCH-CYCLE-001`     | Dependencia circular               | `ERROR`   |
+| `ARCH-LAYER-001`     | Violación de capas                 | `ERROR`   |
+| `ARCH-FORBIDDEN-001` | Import prohibido                   | `ERROR`   |
+| `ARCH-INIT-001`      | `__init__.py` faltante             | `WARNING` |
+| `ARCH-COMPLEX-001`   | Complejidad superior al umbral     | `WARNING` |
+| `ARCH-DEAD-001`      | Código potencialmente no utilizado | `WARNING` |
+
+### Documentation Auditor
+
+Ubicación:
+
+```text
+plugins/documentation/documentation_auditor.py
+```
+
+Capacidades principales:
+
+* Detección de README faltante.
+* Validación de documentación de paquetes.
+* Docstrings de módulos.
+* Docstrings de clases.
+* Docstrings de funciones.
+* Detección de placeholders.
+* Métricas de cobertura documental.
+
+Compatibilidad:
+
+* Corregido para Python 3.14.
+* Usa `ast.Constant` como representación canónica de strings.
+* No debe usar `ast.Str`.
+
+### Testing Auditor
+
+Ubicación:
+
+```text
+plugins/testing/testing_auditor.py
+```
+
+Capacidades principales:
+
+* Descubrimiento de archivos de pruebas.
+* Identificación de módulos sin cobertura estructural.
+* Detección de patrones problemáticos.
+* Análisis conservador de estructura de testing.
+* Métricas de archivos y funciones de prueba.
+
+### Configuration Auditor
+
+Ubicación:
+
+```text
+plugins/configuration/configuration_auditor.py
+```
+
+Capacidades principales:
+
+* Descubrimiento de archivos de configuración.
+* Validación sintáctica de JSON.
+* Validación sintáctica de YAML cuando esté disponible.
+* Validación de TOML.
+* Detección de configuraciones problemáticas.
+* Detección de archivos vacíos o inválidos.
+
+Código relevante:
+
+| Código               | Regla                                          | Severidad |
+| -------------------- | ---------------------------------------------- | --------- |
+| `CONFIG-INVALID-001` | Archivo de configuración con sintaxis inválida | `ERROR`   |
 
 ### AI Systems Auditor
-| Código | Regla | Severidad | |--------|-------|-----------| 
-| `AI-IMPORT-001` | Librería de IA detectada | `INFO` | 
-| `AI-SECRET-001` | API key o secreto hardcodeado | `CRITICAL` | 
-| `AI-PROMPT-001` | Prompt hardcodeado sin externalización | `WARNING` | 
-| `AI-ERROR-001` | Llamada a API de IA sin manejo de excepciones | `ERROR` | 
-| `AI-EVAL-001` | Evaluación o ejecución de output de LLM | `CRITICAL` | 
-| `AI-TEMP-001` | Configuración de generación insegura | `WARNING` | 
-| `AI-MODEL-001` | Modelo deprecated o no recomendado | `WARNING` | 
-| `AI-SAFETY-001` | Agente autónomo o RAG sin safeguards | `WARNING` |
----
 
-## 4. Próximos objetivos (orden de prioridad)
+Ubicación:
 
-### FASE 1 — Cierre del Architecture Auditor MVP ✅ COMPLETADA
-
-| # | Objetivo | Archivo(s) de salida | Estado |
-|---|----------|----------------------|--------|
-| 1.2 | **Test Suite A**: Contrato y configuración | `09_TESTS/unit/test_architecture_contract.py` | ✅ COMPLETADO |
-| 1.2 | **Test Suite B**: Descubrimiento e índice | `09_TESTS/unit/test_architecture_discovery.py` | ✅ COMPLETADO |
-| 1.2 | **Test Suite C**: Imports y grafo | `09_TESTS/unit/test_architecture_imports.py` | ✅ COMPLETADO |
-| 1.2 | **Test Suite D**: Las 4 reglas | `09_TESTS/unit/test_architecture_rules.py` | ✅ COMPLETADO |
-| 1.2 | **Test Suite E**: Robustez | `09_TESTS/unit/test_architecture_robustness.py` | ✅ COMPLETADO |
-| 1.3 | **Test Suite F**: Integración con Runtime Pipeline | `09_TESTS/integration/test_architecture_pipeline.py` | ✅ COMPLETADO |
-
-### FASE 2 — Extensión de plugins y reporting
-
-| # | Objetivo | Archivo(s) de salida | Estado |
-|---|----------|----------------------|--------|
-| 2.1 | **Report Engine** (Markdown/JSON) | `08_SCRIPTS/uaaf_core/reporting/` | ✅ COMPLETADO |
-| 2.2 | **Documentation Auditor** | `plugins/documentation/` | ✅ COMPLETADO |
-| 2.2 | **Testing Auditor** | `plugins/testing/` | ✅ COMPLETADO |
-| 2.2 | **Configuration Auditor** | `plugins/configuration/` | ✅ COMPLETADO |
-| 2.2 | **AI Systems Auditor** | `plugins/ai_systems/` | ✅ COMPLETADO |
-| 2.3 | **Features semánticas avanzadas** | `plugins/architecture/` extensión | ✅ COMPLETADO |
-
-Extendido plugins/architecture/architecture_auditor.py de v1.5.1 a v1.6.0.
-Implementado análisis AST determinista de complejidad ciclomática.
-Soporte para funciones síncronas, asíncronas, métodos y funciones anidadas.
-Agregado el contexto configurable max_cyclomatic_complexity.
-Umbral predeterminado: 10.
-El umbral acepta exclusivamente enteros positivos.
-Implementada detección conservadora de imports potencialmente no utilizados.
-Implementada detección conservadora de funciones de nivel módulo sin referencias estáticas demostrables.
-Incorporados safeguards para __all__, decoradores, fixtures, entry points, main, funciones dunder, reexports, métodos y usos dinámicos inciertos.
-Agregadas métricas semánticas y de mantenibilidad por módulo.
-Agregadas métricas semánticas agregadas al resultado.
-Agregados los findings ARCH-COMPLEX-001 y ARCH-DEAD-001.
-Creada la Suite L: 09_TESTS/unit/test_architecture_semantics.py.
-Suite L validada: 74 tests pasando.
-Suites A–F más Suite L validadas conjuntamente: 232 tests pasando.
-Resultado local: 232 passed in 2.75s.
-Sin regresiones detectadas en el Architecture Auditor.
-
-Total documentado del proyecto: 495 tests deterministas:
-
-Architecture Auditor, Suites A–F y L: 232 tests.
-Report Engine: 33 tests.
-Documentation Auditor: 56 tests.
-Testing Auditor: 39 tests.
-Configuration Auditor: 56 tests.
-AI Systems Auditor: 79 tests.
-
-Validación reconfirmada en esta sesión: 232 tests del Architecture Auditor.
-### FASE 3 — Consolidación y CLI (próxima fase activa)
-| # | Objetivo | Archivo(s) de salida | Estado |
-|---|----------|----------------------|--------|
-| 3.1 | **Orchestrator / CLI unificado** | `run.py` o `uaaf/cli.py` | ⏳ PENDIENTE |
-| 3.2 | **Plugin Registry dinámico** | `08_SCRIPTS/uaaf_core/registry.py` | ⏳ PENDIENTE |
-| 3.3 | **Configuración global** | `uaaf.yaml` / `pyproject.toml[tool.uaaf]` | ⏳ PENDIENTE |
-| 3.4 | **CI/CD Integration** | `.github/workflows/uaaf.yml` | ⏳ PENDIENTE |
-| 3.5 | **Export a SARIF** | `08_SCRIPTS/uaaf_core/reporting/sarif_exporter.py` | ⏳ PENDIENTE |
-| 3.6 | **Documentación pública** | `README.md`, `docs/` | ⏳ PENDIENTE |
-
-
-
-
-### Próximos códigos de Fase 2.3 
-| Código | Regla prevista | Severidad prevista | 
-|--------|----------------|--------------------| 
-| `ARCH-COMPLEX-001` | Complejidad ciclomática superior al umbral | `WARNING` | 
-| `ARCH-DEAD-001` | Código o import no utilizado detectado conservadoramente | `WARNING` |
-
-### Archivos que el asistente debe leer al inicio de la Fase 2.3 
-1.`SESSION_CONTEXT.md`. 
-2. `UAAF_SESSION_PLAN.md`. 
-3. `08_SCRIPTS/uaaf_core/audit/audit_result.py`. 
-4. `plugins/architecture/architecture_auditor.py`. 
-5. `plugins/architecture/__init__.py`. 
-6. `09_TESTS/unit/test_architecture_contract.py`. 
-7. `09_TESTS/unit/test_architecture_discovery.py`. 
-8. `09_TESTS/unit/test_architecture_imports.py`. 
-9. `09_TESTS/unit/test_architecture_rules.py`. 
-10.`09_TESTS/unit/test_architecture_robustness.py`. 
-11.`09_TESTS/integration/test_architecture_pipeline.py`. 
-El asistente debe preservar el contrato público, las reglas existentes, los códigos de finding actuales y la compatibilidad con las Suites A-F.
-
----
-
-## 5. Notas técnicas para la siguiente sesión
-
-### Cómo iniciar un nuevo chat con el asistente
-```
-ROL: Actúa como Arquitecto Senior de IA, Ingeniero Full Stack especialista en LLMs.
-
-Contexto: Estoy continuando mi proyecto UAAF. Lee primero el archivo SESSION_CONTEXT.md
-de mi repositorio público para entender el estado exacto:
-https://raw.githubusercontent.com/RayIA007/Universal-Architecture-Audit-Framework/main/SESSION_CONTEXT.md
-
-Luego lee el archivo activo que necesito modificar (te lo indicaré).
-
-Objetivo de ESTA sesión: [describe UNA sola cosa]
-
-Limitaciones: Tengo VS Code con Python. Dame solo el código listo para copiar y pegar.
+```text
+plugins/ai_systems/ai_systems_auditor.py
 ```
 
-### Archivos que el asistente debe leer al inicio de cada sesión
-1. `SESSION_CONTEXT.md` (este archivo)
-2. El archivo objetivo de la sesión
-3. Cualquier dependencia directa (ej: `08_SCRIPTS/uaaf_core/audit/audit_result.py`)
+Capacidades principales:
 
-### Reglas de oro por sesión
-- **Una sesión = Un objetivo = Un entregable**
-- Commitear y pushear ANTES de cerrar el chat
-- Actualizar este `SESSION_CONTEXT.md` al final de cada sesión
-- Nunca mezclar objetivos (no hacer "report engine + nuevo plugin" en la misma sesión)
+* Imports de librerías de IA.
+* Secretos o API keys hardcodeados.
+* Prompts hardcodeados.
+* Llamadas a APIs sin manejo de excepciones.
+* Evaluación insegura de outputs.
+* Configuración de generación insegura.
+* Modelos deprecated.
+* Agentes o RAG sin safeguards.
+
+Códigos principales:
+
+| Código          | Regla                                | Severidad  |
+| --------------- | ------------------------------------ | ---------- |
+| `AI-IMPORT-001` | Librería de IA detectada             | `INFO`     |
+| `AI-SECRET-001` | API key o secreto hardcodeado        | `CRITICAL` |
+| `AI-PROMPT-001` | Prompt hardcodeado                   | `WARNING`  |
+| `AI-ERROR-001`  | API de IA sin manejo de excepciones  | `ERROR`    |
+| `AI-EVAL-001`   | Evaluación insegura de output        | `CRITICAL` |
+| `AI-TEMP-001`   | Configuración de generación insegura | `WARNING`  |
+| `AI-MODEL-001`  | Modelo deprecated                    | `WARNING`  |
+| `AI-SAFETY-001` | Agente o RAG sin safeguards          | `WARNING`  |
 
 ---
 
-## 6. Historial de commits
-### Fase 2.2 — AI Systems Auditor Plugin 
-- Implementado `plugins/ai_systems/ai_systems_auditor.py` v1.0.0. 
-- Implementado `plugins/ai_systems/__init__.py`. 
-- Implementada la Suite K: `09_TESTS/unit/test_ai_systems_auditor.py`. 
-- Resultado validado: 79 tests pasando. 
-- Auditoría de imports de IA, secretos, prompts, manejo de errores, evaluación insegura, configuraciones de generación, modelos deprecated y safeguards. 
-- Hallazgos emitidos mediante el contrato canónico `AuditResult`. 
-- Rutas relativas POSIX y resultados deterministas. 
-- Fase 2.2 completada. - Próximo objetivo: Fase 2.3 
-- Features semánticas avanzadas del Architecture Auditor.
-### Fase 2.3 — Features semánticas avanzadas del Architecture Auditor
+## 6. Resultado de la Fase 3.1
 
-- Extendido `plugins/architecture/architecture_auditor.py`.
-- Incrementada la versión del plugin de v1.5.1 a v1.6.0.
-- Agregado `max_cyclomatic_complexity` con valor predeterminado `10`.
-- Implementado cálculo determinista de complejidad ciclomática mediante AST.
-- Analizadas funciones `def`, `async def`, métodos y funciones anidadas con nombres cualificados estables.
-- Implementado `ARCH-COMPLEX-001` con severidad `WARNING`.
-- Implementada detección conservadora de imports no utilizados.
-- Implementada detección conservadora de funciones de nivel módulo sin referencias.
-- Implementado `ARCH-DEAD-001` con severidad `WARNING`.
-- Agregados registros de mantenibilidad por módulo en `summary["module_metrics"]`.
-- Agregadas métricas semánticas acumuladas en `metrics`.
-- Preservadas las reglas `ARCH-CYCLE-001`, `ARCH-LAYER-001`, `ARCH-FORBIDDEN-001` y `ARCH-INIT-001`.
-- Preservados `run(context)`, el wrapper `execute()` y el contrato canónico `AuditResult`.
-- Creada `09_TESTS/unit/test_architecture_semantics.py`.
-- Suite L validada con 74 tests pasando.
-- Regresión conjunta de Suites A–F y L validada con 232 tests pasando.
-- Validación realizada en Windows con Python 3.14.6 y pytest 9.1.1.
-- Sin dependencias externas nuevas.
-- Sin modificaciones a `08_SCRIPTS/uaaf_core/audit/audit_result.py`.
-- Fase 2.3 completada.
-- 
+### 6.1 Orchestrator unificado
+
+Archivo:
+
+```text
+08_SCRIPTS/uaaf_core/orchestrator.py
+```
+
+Funcionalidad implementada:
+
+* Descubrimiento automático de plugins bajo `plugins/*/`.
+* Reconocimiento del patrón:
+
+  * Directorio de plugin.
+  * Archivo `__init__.py`.
+  * Archivo `<nombre>_auditor.py`.
+* Orden determinista de descubrimiento.
+* Selección de todos los plugins.
+* Selección de subsets.
+* Validación de auditores desconocidos.
+* Ejecución secuencial.
+* Propagación de un contexto canónico.
+* Agregación ordenada de resultados.
+* Conservación de errores por plugin.
+* Consolidación de findings.
+* Integración con `ReportEngine`.
+
+### 6.2 CLI unificada
+
+Archivo:
+
+```text
+08_SCRIPTS/uaaf_core/cli.py
+```
+
+Entry point:
+
+```text
+run.py
+```
+
+Argumentos públicos implementados:
+
+```text
+--project-path
+--auditors
+--output-formats
+--config
+--fail-on
+--exclude
+--output-dir
+--plugins-dir
+--framework-root
+```
+
+Ejemplo principal:
+
+```powershell
+python run.py `
+  --project-path . `
+  --auditors all `
+  --output-formats markdown,json
+```
+
+Subset de auditores:
+
+```powershell
+python run.py `
+  --project-path . `
+  --auditors architecture,testing,configuration `
+  --output-formats markdown,json
+```
+
+Ejecución con exclusiones y severidades bloqueantes:
+
+```powershell
+python run.py `
+  --project-path . `
+  --auditors all `
+  --output-formats markdown,json `
+  --fail-on critical,error `
+  --exclude .git,.venv,node_modules,dist,build,07_OUTPUTS,09_TESTS,.pytest_cache,__pycache__,02_SCHEMAS
+```
+
+### 6.3 Códigos de salida
+
+* `0`: ejecución correcta sin findings de severidades configuradas en `--fail-on`.
+* `1`: existen findings cuya severidad coincide con `--fail-on`.
+* `2`: error operativo, de configuración, descubrimiento o ejecución.
+
+### 6.4 Reporting consolidado
+
+El Orchestrator genera:
+
+* Reporte Markdown.
+* Reporte JSON.
+* Nombre con timestamp.
+* Escritura automática en `07_OUTPUTS/`.
+* Lista ordenada de resultados por plugin.
+* Findings consolidados.
+* Métricas y errores por plugin.
+
+Patrón de nombre:
+
+```text
+YYYYMMDD_HHMMSS_uaaf-orchestrator_consolidated.md
+YYYYMMDD_HHMMSS_uaaf-orchestrator_consolidated.json
+```
+
+### 6.5 Correcciones realizadas durante la validación
+
+#### Inferencia de la raíz del framework
+
+Se corrigió la inferencia de la raíz del repositorio en Windows.
+
+La raíz debe resolverse desde:
+
+```python
+Path(__file__).resolve().parents[2]
+```
+
+Esto evita que la CLI intente descubrir plugins en:
+
+```text
+C:\plugins
+```
+
+#### Compatibilidad del Documentation Auditor con Python 3.14
+
+Se eliminó el acceso a:
+
+```python
+ast.Str
+```
+
+Se conserva únicamente la representación canónica:
+
+```python
+ast.Constant
+```
+
+Se agregó una prueba de regresión para expresiones AST que no contienen strings.
+
+### 6.6 Validación final
+
+* Suite de Documentation Auditor: 57 tests pasando.
+* Suite completa del repositorio: 577 tests pasando.
+* Cinco plugins descubiertos.
+* Cinco plugins ejecutados.
+* Cero errores internos de plugins.
+* Markdown generado correctamente.
+* JSON generado correctamente.
+* `--exclude` validado.
+* `--fail-on` validado.
+* Códigos de salida `0`, `1` y `2` comprobados.
+
+Validación operativa final:
+
+* 5 auditores.
+* 941 findings de severidad `warning`.
+* 0 findings `critical`.
+* 0 findings `error`.
+* Exit code `0`.
+
+---
+
+## 7. Deuda técnica conocida
+
+### 7.1 JSON Schemas pendientes
+
+Los siguientes archivos de `02_SCHEMAS/` son placeholders de cero bytes:
+
+* `audit_evidence.schema.json`
+* `audit_finding.schema.json`
+* `audit_profile.schema.json`
+* `audit_report.schema.json`
+* `audit_rule.schema.json`
+* `audit_run.schema.json`
+* `audit_score.schema.json`
+* `project_manifest.schema.json`
+
+El Configuration Auditor los reporta correctamente como:
+
+```text
+CONFIG-INVALID-001
+```
+
+con severidad:
+
+```text
+ERROR
+```
+
+No deben rellenarse con `{}` únicamente para silenciar el auditor.
+
+Su implementación debe realizarse en una sesión independiente dedicada a:
+
+* Contratos JSON Schema canónicos.
+* Relaciones entre schemas.
+* Fixtures válidos.
+* Fixtures inválidos.
+* Validación cruzada.
+* Tests deterministas.
+
+### 7.2 Fixtures de secretos en pruebas
+
+`09_TESTS` contiene secretos simulados utilizados deliberadamente para probar el AI Systems Auditor.
+
+No representan credenciales reales.
+
+Cuando `09_TESTS` forma parte de la auditoría, el AI Systems Auditor puede producir findings `AI-SECRET-001` de severidad `CRITICAL`.
+
+Para una auditoría operativa del código productivo se recomienda excluir `09_TESTS`.
+
+### 7.3 Exclusiones operativas temporales
+
+Para la validación operativa de la Fase 3.1 se utilizaron:
+
+* `.git`
+* `.venv`
+* `node_modules`
+* `dist`
+* `build`
+* `07_OUTPUTS`
+* `09_TESTS`
+* `.pytest_cache`
+* `__pycache__`
+* `02_SCHEMAS`
+
+Estas exclusiones no eliminan la deuda técnica. Únicamente permiten diferenciar:
+
+* Fallos del Orchestrator.
+* Findings deliberados de fixtures.
+* Archivos placeholder todavía no implementados.
+* Hallazgos reales del código productivo.
+
+---
+
+## 8. Fase 3 — Roadmap
+
+| #   | Objetivo                     | Archivo(s) previstos               | Estado               |
+| --- | ---------------------------- | ---------------------------------- | -------------------- |
+| 3.1 | Orchestrator / CLI unificado | `orchestrator.py`, `cli.py`, tests | ✅ COMPLETADA         |
+| 3.2 | Plugin Registry dinámico     | `registry.py`, integración y tests | ⏳ SIGUIENTE OBJETIVO |
+| 3.3 | Configuración global         | `uaaf.yaml` / `[tool.uaaf]`        | ⏳ PENDIENTE          |
+| 3.4 | CI/CD Integration            | `.github/workflows/uaaf.yml`       | ⏳ PENDIENTE          |
+| 3.5 | Exportación SARIF            | `sarif_exporter.py`                | ⏳ PENDIENTE          |
+| 3.6 | Documentación pública        | `README.md`, `docs/`               | ⏳ PENDIENTE          |
+
+---
+
+## 9. Próxima sesión — Fase 3.2
+
+### Objetivo único
+
+Implementar el Plugin Registry dinámico y convertir `UAAFRegistry` en la fuente canónica de:
+
+* Descubrimiento de plugins.
+* Registro de plugins.
+* Validación de plugins.
+* Consulta de plugins.
+* Selección de plugins.
+* Metadatos de plugins.
+
+El Orchestrator debe consumir el Registry y dejar de mantener una implementación duplicada del descubrimiento.
+
+### Archivos que deben leerse primero
+
+1. `SESSION_CONTEXT.md`.
+2. `UAAF_SESSION_PLAN.md`.
+3. `08_SCRIPTS/uaaf_core/registry.py`.
+4. `08_SCRIPTS/uaaf_core/kernel.py`.
+5. `08_SCRIPTS/uaaf_core/runtime/runtime.py`.
+6. `08_SCRIPTS/uaaf_core/orchestrator.py`.
+7. `08_SCRIPTS/uaaf_core/cli.py`.
+8. `08_SCRIPTS/uaaf_core/audit/audit_result.py`.
+9. `09_TESTS/unit/test_orchestrator.py`.
+10. `09_TESTS/unit/test_cli.py`.
+11. Al menos dos plugins representativos bajo `plugins/*/`.
+
+### Restricciones de compatibilidad
+
+Debe preservarse:
+
+* El contrato público de `AuditResult`.
+* El contrato `run(context)`.
+* El wrapper `execute()`.
+* El entry point `run.py`.
+* Los argumentos públicos de la CLI.
+* Los códigos de salida `0`, `1` y `2`.
+* El orden determinista.
+* Los cinco plugins existentes.
+* La integración con `RuntimeContext`.
+* La generación Markdown y JSON.
+* Los 577 tests actualmente pasando.
+
+---
+
+## 10. Comandos de validación
+
+### Pruebas específicas
+
+```powershell
+python -m pytest `
+  09_TESTS/unit/test_orchestrator.py `
+  09_TESTS/unit/test_cli.py `
+  -v
+```
+
+### Suite completa
+
+```powershell
+python -m pytest -q
+```
+
+Resultado actual esperado:
+
+```text
+577 passed
+```
+
+### Ayuda de la CLI
+
+```powershell
+python run.py --help
+```
+
+### Auditoría operativa
+
+```powershell
+python run.py `
+  --project-path . `
+  --auditors all `
+  --output-formats markdown,json `
+  --fail-on critical,error `
+  --exclude .git,.venv,node_modules,dist,build,07_OUTPUTS,09_TESTS,.pytest_cache,__pycache__,02_SCHEMAS
+```
+
+Resultado validado:
+
+```text
+5 auditor(s)
+941 warning findings
+0 critical findings
+0 error findings
+exit code 0
+```
+
+---
+
+## 11. Historial resumido
+
 ### Fase 1 — Architecture Auditor MVP
 
-```bash
-# Al finalizar la Fase 1, se ejecutó:
-git add .
-git commit -m "feat(architecture-auditor): Fase 1 completada — MVP + 6 Test Suites
+* Contrato y configuración.
+* Descubrimiento.
+* Imports y grafo.
+* Reglas arquitectónicas.
+* Robustez.
+* Integración con runtime.
+* Architecture Auditor estable.
 
-\- Deterministic Python file discovery with configurable exclusions
-\- Module and package index builder
-\- AST import extraction with classification (stdlib/third_party/local)
-\- Circular dependency detection via DFS
-\- Layer validation (Clean Architecture)
-\- Forbidden import detection (global + per-source)
-\- Missing __init__.py validation
-\- Canonical AuditResult with formal AuditFinding objects
-\- Execution metadata (timestamps, duration_ms)
-\- Test Suites A-F: 151+ deterministas tests pasando
+### Fase 2.1 — Report Engine
 
-Refs: MVP spec, design doc, contract catalog"
-git push origin main
+* Markdown.
+* JSON.
+* Serialización determinista.
+* 33 tests.
+
+### Fase 2.2 — Nuevos plugins
+
+* Documentation Auditor.
+* Testing Auditor.
+* Configuration Auditor.
+* AI Systems Auditor.
+* Contratos compatibles con `AuditResult`.
+
+### Fase 2.3 — Features semánticas avanzadas
+
+* Complejidad ciclomática.
+* Dead code conservador.
+* Métricas por módulo.
+* Findings semánticos.
+* Architecture Auditor 1.6.0.
+* 232 tests conjuntos del Architecture Auditor.
+
+### Fase 3.1 — Orchestrator / CLI unificado
+
+* Implementado `08_SCRIPTS/uaaf_core/orchestrator.py`.
+* Implementado `08_SCRIPTS/uaaf_core/cli.py`.
+* Preservado `run.py`.
+* Descubrimiento automático de cinco plugins.
+* Selección de todos los auditores o subsets.
+* Ejecución secuencial.
+* `RuntimeContext` canónico.
+* Agregación ordenada de `AuditResult`.
+* Reportes Markdown y JSON consolidados.
+* Nombres con timestamp.
+* Escritura en `07_OUTPUTS/`.
+* Soporte para `--config`.
+* Soporte para `--fail-on`.
+* Soporte para `--exclude`.
+* Códigos de salida `0`, `1` y `2`.
+* Inferencia de raíz corregida en Windows.
+* Compatibilidad con Python 3.14 corregida.
+* Prueba de regresión AST agregada.
+* Suite completa: 577 tests pasando.
+* Validación operativa: 941 warnings, 0 critical, 0 error y exit code 0.
+* Fase 3.1 completada.
+* Próximo objetivo: Fase 3.2 — Plugin Registry dinámico.
