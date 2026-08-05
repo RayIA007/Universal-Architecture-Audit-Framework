@@ -49,12 +49,27 @@ class _FakeOrchestrator:
         return type(self).result
 
 
+class _ResolvedFakeOrchestrator:
+    init_calls: list[dict[str, Any]] = []
+    resolved_calls: list[Any] = []
+    result = _success_result()
+
+    def __init__(self, **kwargs: Any) -> None:
+        type(self).init_calls.append(dict(kwargs))
+
+    def run_resolved(self, config: Any):
+        type(self).resolved_calls.append(config)
+        return type(self).result
+
 @pytest.fixture(autouse=True)
 def _reset_fake() -> None:
     _FakeOrchestrator.init_calls = []
     _FakeOrchestrator.run_calls = []
     _FakeOrchestrator.result = _success_result()
     _FakeOrchestrator.error = None
+    _ResolvedFakeOrchestrator.init_calls = []
+    _ResolvedFakeOrchestrator.resolved_calls = []
+    _ResolvedFakeOrchestrator.result = _success_result()
 
 
 def test_create_parser_uses_expected_program_name() -> None:
@@ -69,6 +84,7 @@ def test_parse_args_defaults() -> None:
     assert args.config is None
     assert args.fail_on == ()
     assert args.exclude == []
+    assert args._explicit_fields == frozenset()
 
 
 def test_parse_args_project_path() -> None:
@@ -260,3 +276,87 @@ def test_main_does_not_write_error_on_success(
     monkeypatch.setattr(cli, "UnifiedOrchestrator", _FakeOrchestrator)
     assert cli.main([]) == 0
     assert capsys.readouterr().err == ""
+
+def test_parse_args_records_only_explicit_fields() -> None:
+    args = cli.parse_args(
+        [
+            "--project-path",
+            "target",
+            "--output-formats=json",
+            "--exclude",
+            "build",
+        ]
+    )
+    assert args._explicit_fields == frozenset(
+        {"project_path", "output_formats", "exclude"}
+    )
+
+
+def test_resolve_args_config_preserves_file_value_when_cli_is_absent(
+    tmp_path: Path,
+) -> None:
+    project = tmp_path / "project"
+    project.mkdir()
+    config_path = tmp_path / "uaaf.json"
+    config_path.write_text(
+        '{"project_path": "project", "output_formats": ["json"]}',
+        encoding="utf-8",
+    )
+    args = cli.parse_args(["--config", str(config_path)])
+    resolved = cli.resolve_args_config(args)
+    assert resolved.project_path == project.resolve()
+    assert resolved.output_formats == ("json",)
+
+
+def test_resolve_args_config_explicit_cli_overrides_file(
+    tmp_path: Path,
+) -> None:
+    project = tmp_path / "project"
+    project.mkdir()
+    config_path = tmp_path / "uaaf.json"
+    config_path.write_text(
+        '{"project_path": "project", "output_formats": ["markdown"]}',
+        encoding="utf-8",
+    )
+    args = cli.parse_args(
+        [
+            "--config",
+            str(config_path),
+            "--output-formats",
+            "json",
+        ]
+    )
+    resolved = cli.resolve_args_config(args)
+    assert resolved.output_formats == ("json",)
+
+
+def test_main_uses_resolved_configuration_when_supported(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    project = tmp_path / "project"
+    project.mkdir()
+    config_path = tmp_path / "uaaf.json"
+    config_path.write_text(
+        '{"project_path": "project", "output_formats": ["json"]}',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(cli, "UnifiedOrchestrator", _ResolvedFakeOrchestrator)
+    assert cli.main(["--config", str(config_path)]) == 0
+    resolved = _ResolvedFakeOrchestrator.resolved_calls[0]
+    assert resolved.project_path == project.resolve()
+    assert resolved.output_formats == ("json",)
+    assert _ResolvedFakeOrchestrator.init_calls == [
+        {
+            "framework_root": resolved.framework_root,
+            "plugins_dir": resolved.plugins_dir,
+        }
+    ]
+
+
+def test_main_returns_two_for_invalid_configuration_file(
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Path,
+) -> None:
+    assert cli.main(["--config", str(tmp_path / "missing.json")]) == 2
+    assert "does not exist" in capsys.readouterr().err

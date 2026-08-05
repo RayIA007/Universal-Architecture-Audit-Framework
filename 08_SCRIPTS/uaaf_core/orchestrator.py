@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-import json
 import re
 import tempfile
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any, Collection, Mapping, Sequence
 
 from uaaf_core.audit.audit_result import (
     AuditExecution,
@@ -17,6 +16,18 @@ from uaaf_core.audit.audit_result import (
     AuditStatus,
     FindingSeverity,
     validate_audit_result,
+)
+from uaaf_core.config import (
+    DEFAULT_OUTPUT_FORMATS,
+    VALID_OUTPUT_FORMATS,
+    VALID_SEVERITIES,
+    ConfigValidationError,
+    ResolvedConfig,
+    load_config,
+    merge_exclusions,
+    normalize_fail_on,
+    normalize_output_formats,
+    resolve_global_config,
 )
 from uaaf_core.contracts.processor import ProcessorContract
 from uaaf_core.kernel import UAAFKernel
@@ -34,23 +45,6 @@ ORCHESTRATOR_VERSION = "1.0.0"
 PROFILE_ID = "uaaf-unified-cli"
 RESULT_OUTPUT_KEY = "audit_result"
 PLUGIN_CONTEXTS_KEY = "uaaf.plugin_contexts"
-DEFAULT_OUTPUT_FORMATS = ("markdown", "json")
-VALID_OUTPUT_FORMATS = frozenset(DEFAULT_OUTPUT_FORMATS)
-VALID_SEVERITIES = frozenset(severity.value for severity in FindingSeverity)
-_ORCHESTRATOR_CONFIG_KEYS = frozenset(
-    {
-        "auditors",
-        "plugins",
-        "defaults",
-        "global",
-        "exclude",
-        "ignored_directories",
-        "output_formats",
-        "fail_on",
-        "project_path",
-        "output_dir",
-    }
-)
 
 
 class OrchestratorError(RuntimeError):
@@ -92,6 +86,7 @@ class UnifiedOrchestrator:
         self.plugins_dir = Path(
             plugins_dir or registry_plugins
         ).expanduser().resolve()
+        self._registry_injected = registry is not None
         self.registry = (
             registry
             if registry is not None
@@ -121,31 +116,74 @@ class UnifiedOrchestrator:
         fail_on: str | Sequence[str] = (),
         exclude: str | Sequence[str] = (),
         output_dir: str | Path | None = None,
+        _explicit_fields: Collection[str] | None = None,
     ) -> OrchestrationResult:
-        """Execute the selected auditors and generate consolidated reports."""
-        target_path = _require_directory(project_path, "project_path")
-        destination = Path(output_dir or self.framework_root / "07_OUTPUTS").expanduser().resolve()
+        """Compatibility adapter that resolves legacy arguments canonically.
+
+        Direct callers predating global configuration can continue using the
+        historical keyword arguments.  Exact absence-versus-explicit semantics
+        are available through ``_explicit_fields`` and are used by tests and
+        adapters; the public CLI calls :meth:`run_resolved` directly.
+        """
+        cli_values = {
+            "project_path": project_path,
+            "auditors": auditors,
+            "output_formats": output_formats,
+            "fail_on": fail_on,
+            "exclude": exclude,
+            "output_dir": output_dir,
+        }
+        explicit_fields = (
+            frozenset(_explicit_fields)
+            if _explicit_fields is not None
+            else _infer_legacy_explicit_fields(
+                auditors=auditors,
+                output_formats=output_formats,
+                fail_on=fail_on,
+                exclude=exclude,
+                output_dir=output_dir,
+            )
+        )
+        explicit_fields = frozenset({"project_path", *explicit_fields})
+        resolved = resolve_global_config(
+            cli_values=cli_values,
+            explicit_cli_fields=explicit_fields,
+            config_path=config_path,
+            framework_root_default=self.framework_root,
+            validate_directories=False,
+        )
+        return self.run_resolved(resolved)
+
+    def run_resolved(self, config: ResolvedConfig) -> OrchestrationResult:
+        """Execute one fully resolved and immutable global configuration."""
+        if not isinstance(config, ResolvedConfig):
+            raise TypeError(
+                "UnifiedOrchestrator.run_resolved() requires ResolvedConfig."
+            )
+
+        self._configure_execution_paths(config)
+        target_path = _require_directory(config.project_path, "project_path")
+        destination = config.output_dir.expanduser().resolve()
+        if destination.exists() and not destination.is_dir():
+            raise NotADirectoryError(
+                f"output_dir is not a directory: {destination}."
+            )
         destination.mkdir(parents=True, exist_ok=True)
 
-        config = load_config(config_path) if config_path else {}
-        discovered = self.discover_plugins()
-        selected = list(self.registry.select_plugins(auditors))
-        formats = normalize_output_formats(
-            output_formats if output_formats else config.get("output_formats", DEFAULT_OUTPUT_FORMATS)
-        )
-        fail_severities = normalize_fail_on(
-            fail_on if fail_on else config.get("fail_on", ())
-        )
-        exclusions = merge_exclusions(
-            config.get("exclude", config.get("ignored_directories", ())),
-            exclude,
+        self.discover_plugins()
+        selected = list(self.registry.select_plugins(config.auditors))
+        plugin_sources = _validated_plugin_sources(
+            registry=self.registry,
+            selected_plugins=selected,
+            config=config,
         )
         plugin_contexts = {
             plugin.plugin_id: build_plugin_context(
                 plugin=plugin,
                 project_path=target_path,
-                config=config,
-                exclusions=exclusions,
+                config=plugin_sources[plugin.plugin_id],
+                exclusions=config.exclude,
+                strict=True,
             )
             for plugin in selected
         }
@@ -163,6 +201,7 @@ class UnifiedOrchestrator:
                     if isinstance(self.registry, UAAFRegistry)
                     else None
                 ),
+                resolved_config=config,
             )
             runtime.run()
             audit_results = _extract_ordered_audit_results(
@@ -183,11 +222,11 @@ class UnifiedOrchestrator:
                 format=output_format,
                 output_dir=destination,
             )
-            for output_format in formats
+            for output_format in config.output_formats
         ]
         exit_code = determine_exit_code(
             audit_results=audit_results,
-            fail_on=fail_severities,
+            fail_on=config.fail_on,
         )
         return OrchestrationResult(
             audit_results=audit_results,
@@ -195,6 +234,23 @@ class UnifiedOrchestrator:
             report_paths=report_paths,
             runtime_context=runtime.context,
             exit_code=exit_code,
+        )
+
+    def _configure_execution_paths(self, config: ResolvedConfig) -> None:
+        """Align Orchestrator and Registry paths with resolved configuration."""
+        new_root = config.framework_root.expanduser().resolve()
+        new_plugins = config.plugins_dir.expanduser().resolve()
+        paths_changed = (
+            new_root != self.framework_root
+            or new_plugins != self.plugins_dir
+        )
+        self.framework_root = new_root
+        self.plugins_dir = new_plugins
+        if not paths_changed or self._registry_injected:
+            return
+        self.registry = UAAFRegistry(
+            framework_root=self.framework_root,
+            plugins_dir=self.plugins_dir,
         )
 
 
@@ -232,14 +288,21 @@ def select_plugins(
         )
     )
 
+
 def build_plugin_context(
     *,
     plugin: PluginDescriptor,
     project_path: Path,
     config: Mapping[str, Any],
     exclusions: Sequence[str],
+    strict: bool = False,
 ) -> dict[str, Any]:
-    """Build a strict plugin context from global and plugin-specific config."""
+    """Build one isolated plugin context.
+
+    ``strict=False`` preserves the historical compatibility wrapper that
+    filters unsupported keys.  Canonical resolved execution uses
+    ``strict=True`` after Registry-aware validation.
+    """
     context: dict[str, Any] = {
         "project_path": str(project_path.resolve()),
         "audit_type": plugin.audit_type,
@@ -250,30 +313,190 @@ def build_plugin_context(
             raise TypeError("Configuration 'defaults' must be a mapping.")
         context.update(defaults)
 
-    plugin_sections = config.get("auditors", config.get("plugins", {}))
+    plugin_sections = config.get("plugins", config.get("auditors", {}))
     if plugin_sections is not None:
         if not isinstance(plugin_sections, Mapping):
-            raise TypeError("Configuration 'auditors' must be a mapping.")
+            raise TypeError("Configuration 'plugins' must be a mapping.")
         for key in (plugin.name, plugin.audit_type, plugin.plugin_id):
             section = plugin_sections.get(key)
             if section is None:
                 continue
             if not isinstance(section, Mapping):
-                raise TypeError(f"Configuration for auditor {key!r} must be a mapping.")
+                raise TypeError(
+                    f"Configuration for auditor {key!r} must be a mapping."
+                )
             context.update(section)
 
-    if exclusions:
+    if exclusions and (
+        not plugin.allowed_context_fields
+        or "ignored_directories" in plugin.allowed_context_fields
+    ):
         existing = context.get("ignored_directories", ())
-        context["ignored_directories"] = merge_exclusions(existing, exclusions)
+        context["ignored_directories"] = merge_exclusions(
+            existing,
+            exclusions,
+        )
 
     if plugin.allowed_context_fields:
-        unknown = set(context) - plugin.allowed_context_fields
+        unknown = sorted(
+            set(context)
+            - plugin.allowed_context_fields
+            - {"project_path", "audit_type"}
+        )
+        if strict and unknown:
+            raise ConfigValidationError(
+                f"Unsupported configuration field(s) for plugin "
+                f"{plugin.plugin_id!r}: {unknown}."
+            )
         for key in unknown:
             context.pop(key, None)
+
     context["project_path"] = str(project_path.resolve())
-    if not plugin.allowed_context_fields or "audit_type" in plugin.allowed_context_fields:
+    if (
+        not plugin.allowed_context_fields
+        or "audit_type" in plugin.allowed_context_fields
+    ):
         context["audit_type"] = plugin.audit_type
     return context
+
+
+def _validated_plugin_sources(
+    *,
+    registry: Any,
+    selected_plugins: Sequence[PluginDescriptor],
+    config: ResolvedConfig,
+) -> dict[str, dict[str, Any]]:
+    """Resolve plugin aliases and validate all plugin-specific fields."""
+    canonical_sections: dict[str, dict[str, Any]] = {}
+    canonical_aliases: dict[str, str] = {}
+    for selector, raw_section in config.plugin_configs.items():
+        plugin = registry.resolve_plugin(selector)
+        section = dict(raw_section)
+        _reject_reserved_plugin_fields(section, selector=selector)
+        _validate_plugin_fields(plugin, section, selector=selector)
+        existing = canonical_sections.get(plugin.plugin_id)
+        if existing is not None and existing != section:
+            previous = canonical_aliases[plugin.plugin_id]
+            raise ConfigValidationError(
+                f"Plugin configuration aliases {previous!r} and {selector!r} "
+                f"resolve to {plugin.plugin_id!r} with conflicting values."
+            )
+        canonical_sections[plugin.plugin_id] = section
+        canonical_aliases[plugin.plugin_id] = selector
+
+    selected = tuple(selected_plugins)
+    defaults = dict(config.plugin_defaults)
+    _reject_reserved_plugin_fields(defaults, selector="defaults")
+    if defaults:
+        known_plugins = (
+            tuple(registry.list_plugins())
+            if hasattr(registry, "list_plugins")
+            else selected
+        )
+        declared_fields = set().union(
+            *(
+                set(plugin.allowed_context_fields)
+                for plugin in known_plugins
+                if plugin.allowed_context_fields
+            )
+        )
+        if declared_fields:
+            unknown_defaults = sorted(set(defaults) - declared_fields)
+            if unknown_defaults:
+                raise ConfigValidationError(
+                    "Unsupported global plugin default field(s): "
+                    f"{unknown_defaults}."
+                )
+
+    sources: dict[str, dict[str, Any]] = {}
+    for plugin in selected:
+        if plugin.allowed_context_fields:
+            plugin_defaults = {
+                key: value
+                for key, value in defaults.items()
+                if key in plugin.allowed_context_fields
+            }
+        else:
+            plugin_defaults = dict(defaults)
+        sources[plugin.plugin_id] = {
+            "defaults": plugin_defaults,
+            "plugins": {
+                plugin.plugin_id: dict(
+                    canonical_sections.get(plugin.plugin_id, {})
+                )
+            },
+        }
+    return sources
+
+
+def _reject_reserved_plugin_fields(
+    section: Mapping[str, Any],
+    *,
+    selector: str,
+) -> None:
+    reserved = sorted(set(section) & {"project_path", "audit_type"})
+    if reserved:
+        raise ConfigValidationError(
+            f"Plugin configuration {selector!r} cannot override reserved "
+            f"field(s): {reserved}."
+        )
+
+
+def _validate_plugin_fields(
+    plugin: PluginDescriptor,
+    section: Mapping[str, Any],
+    *,
+    selector: str,
+) -> None:
+    if not plugin.allowed_context_fields:
+        return
+    unknown = sorted(set(section) - plugin.allowed_context_fields)
+    if unknown:
+        raise ConfigValidationError(
+            f"Unsupported configuration field(s) for plugin selector "
+            f"{selector!r}: {unknown}."
+        )
+
+
+def _infer_legacy_explicit_fields(
+    *,
+    auditors: str | Sequence[str],
+    output_formats: str | Sequence[str],
+    fail_on: str | Sequence[str],
+    exclude: str | Sequence[str],
+    output_dir: str | Path | None,
+) -> frozenset[str]:
+    explicit: set[str] = set()
+    if normalize_auditors_for_comparison(auditors) != ("all",):
+        explicit.add("auditors")
+    if normalize_output_formats(output_formats) != DEFAULT_OUTPUT_FORMATS:
+        explicit.add("output_formats")
+    if normalize_fail_on(fail_on):
+        explicit.add("fail_on")
+    if merge_exclusions(exclude):
+        explicit.add("exclude")
+    if output_dir is not None:
+        explicit.add("output_dir")
+    return frozenset(explicit)
+
+
+def normalize_auditors_for_comparison(
+    value: str | Sequence[str],
+) -> tuple[str, ...]:
+    if isinstance(value, str):
+        raw_items: Sequence[str] = (value,)
+    else:
+        raw_items = value
+    normalized: list[str] = []
+    for item in raw_items:
+        if not isinstance(item, str):
+            raise TypeError("Auditor selectors must contain strings.")
+        normalized.extend(
+            part.strip().casefold()
+            for part in item.split(",")
+            if part.strip()
+        )
+    return tuple(dict.fromkeys(normalized))
 
 
 def build_consolidated_result(
@@ -393,185 +616,6 @@ def determine_exit_code(
     return 0
 
 
-def normalize_output_formats(value: str | Sequence[str]) -> tuple[str, ...]:
-    """Normalize and validate requested report formats."""
-    formats = _split_csv(value)
-    if not formats:
-        raise ValueError("At least one output format is required.")
-    normalized = ["markdown" if item == "md" else item for item in formats]
-    unknown = sorted(set(normalized) - VALID_OUTPUT_FORMATS)
-    if unknown:
-        raise ValueError(
-            f"Unsupported output format(s): {unknown}. Use markdown and/or json."
-        )
-    return tuple(dict.fromkeys(normalized))
-
-
-def normalize_fail_on(value: str | Sequence[str]) -> tuple[str, ...]:
-    """Normalize and validate finding severities used for exit status."""
-    severities = _split_csv(value)
-    unknown = sorted(set(severities) - VALID_SEVERITIES)
-    if unknown:
-        raise ValueError(
-            f"Unsupported severity value(s): {unknown}. Expected {sorted(VALID_SEVERITIES)}."
-        )
-    return tuple(dict.fromkeys(severities))
-
-
-def merge_exclusions(*values: Any) -> list[str]:
-    """Merge comma-separated or sequence exclusions in stable first-seen order."""
-    merged: list[str] = []
-    seen: set[str] = set()
-    for value in values:
-        for item in _split_csv_preserve_case(value):
-            name = item.strip()
-            if not name:
-                continue
-            if Path(name).name != name:
-                raise ValueError(
-                    f"Excluded directory must be a directory name, not a path: {name!r}."
-                )
-            if name not in seen:
-                seen.add(name)
-                merged.append(name)
-    return merged
-
-
-def load_config(path: str | Path | None) -> dict[str, Any]:
-    """Load JSON, TOML, or YAML configuration; missing files are optional."""
-    if path is None:
-        return {}
-    config_path = Path(path).expanduser().resolve()
-    if not config_path.exists():
-        return {}
-    if not config_path.is_file():
-        raise ValueError(f"Configuration path is not a file: {config_path}.")
-    text = config_path.read_text(encoding="utf-8")
-    suffix = config_path.suffix.lower()
-    if suffix == ".json":
-        data = json.loads(text)
-    elif suffix == ".toml":
-        import tomllib
-
-        data = tomllib.loads(text)
-    elif suffix in {".yaml", ".yml"}:
-        data = _load_yaml(text)
-    else:
-        raise ValueError(
-            f"Unsupported configuration format {suffix!r}; use .json, .toml, .yaml, or .yml."
-        )
-    if data is None:
-        return {}
-    if not isinstance(data, Mapping):
-        raise TypeError("UAAF configuration root must be a mapping.")
-    return dict(data)
-
-
-def _load_yaml(text: str) -> Any:
-    try:
-        import yaml  # type: ignore[import-not-found]
-    except ImportError:
-        return _parse_simple_yaml(text)
-    return yaml.safe_load(text)
-
-
-def _parse_simple_yaml(text: str) -> dict[str, Any]:
-    """Parse a deterministic YAML subset used by ``uaaf.yaml``."""
-    root: dict[str, Any] = {}
-    stack: list[tuple[int, Any]] = [(-1, root)]
-    lines = text.splitlines()
-    for index, raw_line in enumerate(lines):
-        if not raw_line.strip() or raw_line.lstrip().startswith("#"):
-            continue
-        if "\t" in raw_line[: len(raw_line) - len(raw_line.lstrip())]:
-            raise ValueError("YAML indentation must use spaces, not tabs.")
-        indent = len(raw_line) - len(raw_line.lstrip(" "))
-        content = _strip_yaml_comment(raw_line.strip())
-        while stack and indent <= stack[-1][0]:
-            stack.pop()
-        if not stack:
-            raise ValueError(f"Invalid YAML indentation at line {index + 1}.")
-        parent = stack[-1][1]
-        if content.startswith("- ") or content == "-":
-            if not isinstance(parent, list):
-                raise ValueError(f"Unexpected YAML list item at line {index + 1}.")
-            parent.append(_parse_yaml_scalar(content[1:].strip()))
-            continue
-        if ":" not in content:
-            raise ValueError(f"Invalid YAML mapping entry at line {index + 1}.")
-        key, raw_value = content.split(":", 1)
-        key = key.strip()
-        if not key:
-            raise ValueError(f"Empty YAML key at line {index + 1}.")
-        if not isinstance(parent, dict):
-            raise ValueError(f"YAML mapping not allowed at line {index + 1}.")
-        value_text = raw_value.strip()
-        if value_text:
-            parent[key] = _parse_yaml_scalar(value_text)
-            continue
-        next_content, next_indent = _next_yaml_content(lines, index + 1)
-        child: Any = [] if next_content is not None and next_indent > indent and next_content.startswith("-") else {}
-        parent[key] = child
-        stack.append((indent, child))
-    return root
-
-
-def _next_yaml_content(lines: Sequence[str], start: int) -> tuple[str | None, int]:
-    for raw_line in lines[start:]:
-        if not raw_line.strip() or raw_line.lstrip().startswith("#"):
-            continue
-        indent = len(raw_line) - len(raw_line.lstrip(" "))
-        return _strip_yaml_comment(raw_line.strip()), indent
-    return None, -1
-
-
-def _strip_yaml_comment(value: str) -> str:
-    quote: str | None = None
-    escaped = False
-    output: list[str] = []
-    for char in value:
-        if escaped:
-            output.append(char)
-            escaped = False
-            continue
-        if char == "\\" and quote == '"':
-            output.append(char)
-            escaped = True
-            continue
-        if char in {"'", '"'}:
-            quote = None if quote == char else char if quote is None else quote
-            output.append(char)
-            continue
-        if char == "#" and quote is None:
-            break
-        output.append(char)
-    return "".join(output).rstrip()
-
-
-def _parse_yaml_scalar(value: str) -> Any:
-    lowered = value.casefold()
-    if lowered in {"null", "~"}:
-        return None
-    if lowered in {"true", "yes", "on"}:
-        return True
-    if lowered in {"false", "no", "off"}:
-        return False
-    if value.startswith("[") or value.startswith("{"):
-        try:
-            return json.loads(value.replace("'", '"'))
-        except json.JSONDecodeError as error:
-            raise ValueError(f"Invalid inline YAML value: {value!r}.") from error
-    if (value.startswith('"') and value.endswith('"')) or (
-        value.startswith("'") and value.endswith("'")
-    ):
-        return value[1:-1]
-    if re.fullmatch(r"[-+]?\d+", value):
-        return int(value)
-    if re.fullmatch(r"[-+]?(?:\d+\.\d*|\d*\.\d+)", value):
-        return float(value)
-    return value
-
-
 def _build_runtime(
     *,
     project_path: Path,
@@ -580,6 +624,7 @@ def _build_runtime(
     selected_plugins: Sequence[PluginDescriptor],
     plugin_contexts: Mapping[str, dict[str, Any]],
     registry: UAAFRegistry | None = None,
+    resolved_config: ResolvedConfig | None = None,
 ):
     runtime_registry = registry if registry is not None else UAAFRegistry()
     for plugin in selected_plugins:
@@ -608,6 +653,11 @@ def _build_runtime(
             "orchestrator_id": ORCHESTRATOR_ID,
             "orchestrator_version": ORCHESTRATOR_VERSION,
             "selected_plugin_ids": [plugin.plugin_id for plugin in selected_plugins],
+            "resolved_config": (
+                resolved_config.to_dict()
+                if resolved_config is not None
+                else None
+            ),
         },
     )
 
@@ -707,38 +757,6 @@ def _require_directory(value: str | Path, field_name: str) -> Path:
     if not path.is_dir():
         raise NotADirectoryError(f"{field_name} is not a directory: {path}.")
     return path
-
-
-def _split_csv(value: Any) -> list[str]:
-    if value is None:
-        return []
-    raw_items = [value] if isinstance(value, str) else list(value)
-    items: list[str] = []
-    for raw_item in raw_items:
-        if not isinstance(raw_item, str):
-            raise TypeError("Comma-separated values must contain strings.")
-        items.extend(
-            part.strip().casefold()
-            for part in raw_item.split(",")
-            if part.strip()
-        )
-    return items
-
-
-def _split_csv_preserve_case(value: Any) -> list[str]:
-    if value is None:
-        return []
-    raw_items = [value] if isinstance(value, str) else list(value)
-    items: list[str] = []
-    for raw_item in raw_items:
-        if not isinstance(raw_item, str):
-            raise TypeError("Comma-separated values must contain strings.")
-        items.extend(
-            part.strip()
-            for part in raw_item.split(",")
-            if part.strip()
-        )
-    return items
 
 
 def _utc_now_iso() -> str:

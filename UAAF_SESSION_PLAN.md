@@ -390,8 +390,8 @@ Extender el Architecture Auditor con análisis estático semántico avanzado, pr
 | --- | ---------------------------- | ---------------------------------- | -------------------- |
 | 3.1 | Orchestrator / CLI unificado | `orchestrator.py`, `cli.py`, tests | ✅ COMPLETADA         |
 | 3.2 | Plugin Registry dinámico     | `registry.py`, integración y tests | ✅ COMPLETADA |
-| 3.3 | Configuración global         | `uaaf.yaml` / `[tool.uaaf]`        | ⏳ SIGUIENTE OBJETIVO          |
-| 3.4 | Integración CI/CD            | GitHub Actions                     | ⏳ PENDIENTE          |
+| 3.3 | Configuración global         | `config.py`, CLI, Orchestrator, tests | ✅ COMPLETADA         |
+| 3.4 | Integración CI/CD            | GitHub Actions                         | ⏳ SIGUIENTE OBJETIVO |
 | 3.5 | Exportación SARIF            | `sarif_exporter.py`                | ⏳ PENDIENTE          |
 | 3.6 | Documentación pública        | `README.md`, `docs/`               | ⏳ PENDIENTE          |
 
@@ -709,28 +709,78 @@ La Fase 3.2 se considerará terminada cuando:
 
 #### Estado
 
-⏳ SIGUIENTE OBJETIVO
+✅ COMPLETADA
 
-#### Objetivo
+#### Objetivo cumplido
 
-Definir una configuración global canónica y su precedencia respecto de la CLI.
+Definir una fuente canónica, tipada, inmutable y determinista para representar la configuración completa de una ejecución de UAAF.
 
-#### Checklist preliminar
+#### Implementación
 
-* [ ] Definir contrato de `uaaf.yaml`.
-* [ ] Evaluar `[tool.uaaf]` en `pyproject.toml`.
-* [ ] Definir precedencia:
+* [x] Crear `08_SCRIPTS/uaaf_core/config.py`.
+* [x] Definir `ResolvedConfig` inmutable.
+* [x] Definir `ConfigOverrides` y `UNSET` para fuentes parciales.
+* [x] Centralizar valores predeterminados.
+* [x] Implementar precedencia `defaults < archivo < CLI explícita`.
+* [x] Diferenciar argumentos ausentes y argumentos explícitos.
+* [x] Conservar los defaults visibles históricos de `argparse`.
+* [x] Cargar JSON mediante biblioteca estándar.
+* [x] Cargar TOML mediante `tomllib`.
+* [x] Admitir `[tool.uaaf]`.
+* [x] Cargar YAML/YML mediante parser limitado y determinista.
+* [x] Eliminar dependencia opcional de PyYAML en la interpretación global.
+* [x] Validar archivo existente, archivo regular, extensión, UTF-8 y raíz mapping.
+* [x] Normalizar auditores, formatos, `fail_on` y exclusiones.
+* [x] Preservar orden y eliminar duplicados de manera estable.
+* [x] Resolver rutas relativas de CLI respecto del directorio de trabajo.
+* [x] Resolver rutas del archivo respecto de su directorio.
+* [x] Preservar aliases históricos de configuración.
+* [x] Validar campos desconocidos y tipos inválidos.
+* [x] Validar configuración específica por plugin mediante Registry.
+* [x] Redactar claves sensibles en snapshots de diagnóstico.
+* [x] Integrar `cli.py` con la configuración canónica.
+* [x] Implementar `UnifiedOrchestrator.run_resolved()`.
+* [x] Conservar `UnifiedOrchestrator.run()` como adaptador histórico.
+* [x] Preservar `UAAFRegistry`, `RuntimeContext`, `AuditResult`, Report Engine y `run.py`.
+* [x] Preservar los cinco plugins existentes.
+* [x] Preservar los códigos de salida `0`, `1` y `2`.
+* [x] No agregar dependencias externas.
 
-  1. CLI.
-  2. Archivo de configuración.
-  3. Valores predeterminados.
-* [ ] Configurar auditores.
-* [ ] Configurar exclusiones.
-* [ ] Configurar formatos.
-* [ ] Configurar severidades bloqueantes.
-* [ ] Configurar output.
-* [ ] Validar claves desconocidas.
-* [ ] Agregar tests deterministas.
+#### Archivos
+
+* [x] `08_SCRIPTS/uaaf_core/config.py` — nuevo.
+* [x] `08_SCRIPTS/uaaf_core/cli.py` — modificado.
+* [x] `08_SCRIPTS/uaaf_core/orchestrator.py` — modificado.
+* [x] `09_TESTS/unit/test_global_config.py` — nuevo.
+* [x] `09_TESTS/unit/test_cli.py` — ampliado.
+* [x] `09_TESTS/unit/test_orchestrator.py` — ampliado.
+
+#### Validación
+
+* [x] 68 pruebas de configuración global pasando.
+* [x] 203 pruebas relacionadas pasando.
+* [x] 713 pruebas totales pasando en 12.48s.
+* [x] 634 pruebas históricas preservadas.
+* [x] 79 pruebas nuevas agregadas.
+* [x] Cero regresiones.
+
+#### Smoke tests
+
+* [x] Ayuda de CLI con exit code `0`.
+* [x] Ejecución de los cinco auditores sin archivo.
+* [x] Ejecución de subset.
+* [x] Archivo JSON.
+* [x] Archivo TOML y `[tool.uaaf]` cubierto por pruebas.
+* [x] Archivo YAML dentro del subconjunto soportado.
+* [x] Precedencia de argumentos explícitos de CLI.
+* [x] Campo desconocido con exit code `2`.
+* [x] Tipo inválido con exit code `2`.
+* [x] Formato no soportado con exit code `2`.
+* [x] Archivo inexistente con exit code `2`.
+
+#### Criterio de finalización
+
+Todos los criterios de aceptación de la Fase 3.3 fueron validados. La configuración se resuelve una sola vez antes de ejecutar plugins, el Orchestrator no mantiene un loader paralelo y la suite completa permanece estable.
 
 ---
 
@@ -738,7 +788,7 @@ Definir una configuración global canónica y su precedencia respecto de la CLI.
 
 #### Estado
 
-⏳ PENDIENTE
+⏳ SIGUIENTE OBJETIVO
 
 #### Checklist preliminar
 
@@ -850,119 +900,91 @@ Estas fases no forman parte de la primera versión terminada y deberán planific
 
 ## 9. Próxima sesión activa
 
-**Fase**: 3.2
-**Componente**: `UAAFRegistry`
-**Objetivo único**: centralizar el descubrimiento, registro, validación, consulta y selección de plugins, integrándolo con el Orchestrator sin romper la CLI.
+**Fase**: 3.4
+**Componente**: Integración CI/CD con GitHub Actions
+**Objetivo único**: ejecutar automáticamente las pruebas y una auditoría UAAF en GitHub Actions, preservando la configuración global, los códigos de salida y los reportes Markdown/JSON.
 
 ### Archivos iniciales
 
 1. `SESSION_CONTEXT.md`.
 2. `UAAF_SESSION_PLAN.md`.
-3. `08_SCRIPTS/uaaf_core/registry.py`.
-4. `08_SCRIPTS/uaaf_core/kernel.py`.
-5. `08_SCRIPTS/uaaf_core/runtime/runtime.py`.
-6. `08_SCRIPTS/uaaf_core/orchestrator.py`.
-7. `08_SCRIPTS/uaaf_core/cli.py`.
-8. `08_SCRIPTS/uaaf_core/audit/audit_result.py`.
-9. `09_TESTS/unit/test_orchestrator.py`.
-10. `09_TESTS/unit/test_cli.py`.
+3. `run.py`.
+4. `pyproject.toml`.
+5. `08_SCRIPTS/uaaf_core/config.py`.
+6. `08_SCRIPTS/uaaf_core/cli.py`.
+7. `08_SCRIPTS/uaaf_core/orchestrator.py`.
+8. `08_SCRIPTS/uaaf_core/registry.py`.
+9. `.gitignore`.
+10. Pruebas relacionadas con CLI, configuración y Orchestrator.
 
 ### Regla principal
 
-El Registry debe convertirse en la fuente canónica de plugins sin romper:
+La integración CI/CD debe consumir los contratos públicos existentes y no introducir una segunda interpretación de configuración. Debe preservar:
 
-* La CLI.
-* El Orchestrator.
-* El Kernel.
-* `RuntimeContext`.
-* `AuditResult`.
-* Los cinco plugins existentes.
-* Los códigos de salida.
-* Los reportes.
-* Los 634 tests existentes.
+* Los 713 tests existentes.
+* Python 3.14 y Windows como plataforma local validada.
+* `run.py` y todos los argumentos públicos de la CLI.
+* La precedencia `defaults < archivo < CLI explícita`.
+* `UAAFRegistry` como fuente canónica de plugins.
+* Los códigos de salida `0`, `1` y `2`.
+* Los reportes Markdown y JSON.
+* Los cinco plugins reales.
+* La ausencia de dependencias Python externas nuevas.
 
 ---
-
 ## 10. Prompt para iniciar la siguiente sesión
 
 ```text
-ROL: Actúa como Arquitecto Senior de IA, Ingeniero Full Stack especialista
-en LLMs, Prompt Engineer, Context Engineer y Agent Engineer. Posees
-experiencia equivalente a la de un líder técnico en empresas de IA.
+ROL: Actúa como Arquitecto Senior de Software e IA, Ingeniero DevOps/Platform especializado en GitHub Actions, Python y herramientas de análisis estático, además de Prompt Engineer, Context Engineer y Agent Engineer.
 
-Contexto: Estoy continuando mi proyecto UAAF
-(Universal Architecture Audit Framework).
+Contexto: Estoy continuando el proyecto UAAF — Universal Architecture Audit Framework.
 
-La Fase 1 — Architecture Auditor MVP está terminada.
+Estado validado:
+- Fase 1 completada.
+- Fase 2 completada.
+- Fase 3.1 — Orchestrator / CLI unificado completada.
+- Fase 3.2 — Plugin Registry dinámico completada.
+- Fase 3.3 — Configuración global completada.
+- UAAFRegistry es la fuente canónica de plugins.
+- ResolvedConfig es la representación canónica de configuración de ejecución.
+- La precedencia es: valores predeterminados < archivo < argumentos explícitos de CLI.
+- JSON, TOML, [tool.uaaf], YAML/YML limitado y configuración específica por plugin están soportados.
+- CLI, Orchestrator, RuntimeContext, AuditResult, Report Engine, run.py y los cinco plugins permanecen compatibles.
+- 713 tests deterministas pasan: 634 históricos preservados y 79 nuevos.
+- Los smoke tests de ayuda, ejecución normal, subset, JSON, TOML, YAML, precedencia y errores con exit code 2 pasaron.
 
-La Fase 2 — Extensión está terminada:
-- Report Engine.
-- Documentation Auditor.
-- Testing Auditor.
-- Configuration Auditor.
-- AI Systems Auditor.
-- Features semánticas avanzadas.
-
-La Fase 3.1 — Orchestrator / CLI unificado está terminada:
-- Descubrimiento automático de cinco plugins.
-- Selección de todos los auditores o subsets.
-- Ejecución secuencial con RuntimeContext.
-- Agregación ordenada de AuditResult.
-- Reportes Markdown y JSON.
-- Soporte para --config.
-- Soporte para --fail-on.
-- Soporte para --exclude.
-- Códigos de salida 0, 1 y 2.
-- Compatibilidad con Windows y Python 3.14.
-- 634 tests deterministas pasando.
-
-Lee PRIMERO:
+Lee primero:
 1. SESSION_CONTEXT.md
 2. UAAF_SESSION_PLAN.md
-3. 08_SCRIPTS/uaaf_core/registry.py
-4. 08_SCRIPTS/uaaf_core/kernel.py
-5. 08_SCRIPTS/uaaf_core/runtime/runtime.py
-6. 08_SCRIPTS/uaaf_core/orchestrator.py
-7. 08_SCRIPTS/uaaf_core/cli.py
-8. 08_SCRIPTS/uaaf_core/audit/audit_result.py
-9. 09_TESTS/unit/test_orchestrator.py
-10. 09_TESTS/unit/test_cli.py
+3. run.py
+4. pyproject.toml
+5. 08_SCRIPTS/uaaf_core/config.py
+6. 08_SCRIPTS/uaaf_core/cli.py
+7. 08_SCRIPTS/uaaf_core/orchestrator.py
+8. 08_SCRIPTS/uaaf_core/registry.py
+9. .gitignore
+10. Las pruebas relacionadas con configuración, CLI y Orchestrator
 
-Objetivo de ESTA sesión:
+Objetivo único de ESTA sesión:
+Implementar la Fase 3.4 — Integración CI/CD mediante GitHub Actions.
 
-Implementar la Fase 3.2 — Plugin Registry dinámico.
+La solución debe:
+- Crear un workflow mínimo, legible y determinista.
+- Ejecutar la suite completa con pytest.
+- Ejecutar UAAF mediante run.py con una configuración explícita adecuada para CI.
+- Aplicar --fail-on de forma deliberada y documentada.
+- Publicar reportes Markdown y JSON como artifacts aunque la auditoría falle cuando sea técnicamente posible.
+- Evitar versionar reportes generados.
+- Mantener permisos mínimos del workflow.
+- Evitar secretos y acciones innecesarias.
+- Preservar códigos de salida y semántica de configuración.
+- Validar el workflow y documentar cómo se usa en pushes y pull requests.
+- No implementar todavía SARIF, ejecución paralela, caché de auditoría, auditoría incremental ni auto-remediation.
 
-UAAFRegistry debe convertirse en la fuente canónica de descubrimiento,
-registro, validación, consulta y selección de plugins.
-
-El Orchestrator debe consumir el Registry y eliminar la lógica duplicada
-de descubrimiento.
-
-Debes preservar:
-- AuditResult.
-- run(context).
-- execute().
-- RuntimeContext.
-- run.py.
-- Todos los argumentos públicos de la CLI.
-- Códigos de salida 0, 1 y 2.
-- Reportes Markdown y JSON.
-- Los cinco plugins existentes.
-- Orden determinista.
-- Los 634 tests existentes.
-
-Crea o amplía 09_TESTS/unit/test_registry.py con tests deterministas.
-
-Limitaciones:
-- Uso VS Code en Windows.
-- Python 3.14.
-- Dame solo código listo para copiar y pegar.
-- Indica el path de cada archivo.
-- No modifiques componentes no relacionados.
+Antes de generar código, inspecciona el repositorio real y verifica en documentación oficial vigente las versiones y contratos de las acciones de GitHub que se utilicen. No asumas versiones por memoria.
 ```
 
 ---
-
 <!-- UAAF_PHASE_3_2_SESSION_PLAN_START -->
 ## Registro de cierre — Fase 3.2
 
@@ -1076,3 +1098,60 @@ CLI > archivo de configuración > valores predeterminados.
 Lee primero SESSION_CONTEXT.md, UAAF_SESSION_PLAN.md, cli.py, orchestrator.py, registry.py, los componentes de runtime y las pruebas relacionadas. Conserva todos los contratos públicos, los cinco plugins, los reportes, los códigos de salida y los 634 tests existentes. No avances a GitHub Actions, SARIF, paralelización, caché, auditoría incremental ni auto-remediation.
 ```
 <!-- UAAF_PHASE_3_2_SESSION_PLAN_END -->
+
+<!-- UAAF_PHASE_3_3_SESSION_PLAN_START -->
+## Registro de cierre — Fase 3.3
+
+### Estado
+
+✅ **COMPLETADA el 2026-08-05**.
+
+### Entregables completados
+
+* [x] Modelo canónico e inmutable de configuración global.
+* [x] Cargadores JSON, TOML y YAML/YML limitado sin dependencias externas.
+* [x] Soporte de `[tool.uaaf]`.
+* [x] Precedencia determinista `defaults < archivo < CLI explícita`.
+* [x] Integración con CLI, Orchestrator, Registry, RuntimeContext y Report Engine.
+* [x] Construcción histórica del Orchestrator preservada.
+* [x] Validaciones y errores deterministas con código de salida `2`.
+* [x] Configuración específica por plugin aislada y validada.
+* [x] Contratos públicos y cinco plugins preservados.
+* [x] Cero dependencias externas nuevas.
+* [x] Cero regresiones.
+
+### Resultado final validado
+
+```text
+68 pruebas de configuración global pasando
+203 pruebas relacionadas pasando
+713 pruebas totales pasando en 12.48s
+```
+
+Composición:
+
+* 634 pruebas anteriores preservadas.
+* 79 pruebas nuevas agregadas.
+
+### Smoke tests
+
+```text
+--help: exit code 0
+sin config: 5 auditores, Markdown y JSON, exit code 0
+subset: 3 auditores, Markdown y JSON, exit code 0
+JSON: exit code 0
+TOML: exit code 0
+YAML: exit code 0
+precedencia: PRECEDENCE OK
+campo desconocido: exit code 2
+tipo inválido: exit code 2
+extensión no soportada: exit code 2
+archivo inexistente: exit code 2
+```
+
+### Siguiente objetivo
+
+## Fase 3.4 — Integración CI/CD
+
+Objetivo único: crear una integración de GitHub Actions que ejecute pytest y UAAF, aplique una política explícita de `--fail-on`, y publique reportes Markdown/JSON como artifacts, sin alterar la configuración global ni avanzar a SARIF.
+<!-- UAAF_PHASE_3_3_SESSION_PLAN_END -->

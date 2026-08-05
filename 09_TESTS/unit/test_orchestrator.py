@@ -24,6 +24,10 @@ from uaaf_core.audit.audit_result import (  # noqa: E402
     FindingSeverity,
     validate_audit_result,
 )
+from uaaf_core.config import (  # noqa: E402
+    ConfigFileError,
+    ConfigValidationError,
+)
 from uaaf_core.orchestrator import (  # noqa: E402
     ORCHESTRATOR_ID,
     OrchestratorError,
@@ -331,9 +335,9 @@ def test_merge_exclusions_rejects_paths() -> None:
         merge_exclusions("generated/cache")
 
 
-def test_load_config_missing_file_is_optional(tmp_path: Path) -> None:
-    assert load_config(tmp_path / "missing.yaml") == {}
-
+def test_load_config_missing_file_is_error(tmp_path: Path) -> None:
+    with pytest.raises(ConfigFileError, match="does not exist"):
+        load_config(tmp_path / "missing.yaml")
 
 def test_load_config_json(tmp_path: Path) -> None:
     path = tmp_path / "uaaf.json"
@@ -543,4 +547,106 @@ def test_unified_orchestrator_rejects_missing_project(tmp_path: Path) -> None:
     with pytest.raises(FileNotFoundError, match="project_path"):
         UnifiedOrchestrator(framework_root=root).run(
             project_path=tmp_path / "missing"
+        )
+
+def test_build_plugin_context_strict_rejects_unknown_fields(
+    tmp_path: Path,
+) -> None:
+    plugin = _descriptor(
+        "alpha",
+        allowed=frozenset({"project_path", "audit_type"}),
+    )
+    with pytest.raises(ConfigValidationError, match="Unsupported configuration"):
+        build_plugin_context(
+            plugin=plugin,
+            project_path=tmp_path,
+            config={"defaults": {"unknown": True}},
+            exclusions=[],
+            strict=True,
+        )
+
+
+def test_run_resolved_requires_resolved_config(tmp_path: Path) -> None:
+    root = _framework(tmp_path)
+    _write_plugin(root, "alpha")
+    with pytest.raises(TypeError, match="requires ResolvedConfig"):
+        UnifiedOrchestrator(framework_root=root).run_resolved({})  # type: ignore[arg-type]
+
+
+def test_unified_orchestrator_uses_file_output_formats_when_legacy_default_absent(
+    tmp_path: Path,
+) -> None:
+    root = _framework(tmp_path)
+    _write_plugin(root, "alpha")
+    target = tmp_path / "target"
+    target.mkdir()
+    config_path = tmp_path / "uaaf.json"
+    config_path.write_text(
+        '{"output_formats": ["json"]}',
+        encoding="utf-8",
+    )
+    result = UnifiedOrchestrator(framework_root=root).run(
+        project_path=target,
+        config_path=config_path,
+    )
+    assert [path.suffix for path in result.report_paths] == [".json"]
+
+
+def test_unified_orchestrator_explicit_output_formats_override_file(
+    tmp_path: Path,
+) -> None:
+    root = _framework(tmp_path)
+    _write_plugin(root, "alpha")
+    target = tmp_path / "target"
+    target.mkdir()
+    config_path = tmp_path / "uaaf.json"
+    config_path.write_text(
+        '{"output_formats": ["markdown"]}',
+        encoding="utf-8",
+    )
+    result = UnifiedOrchestrator(framework_root=root).run(
+        project_path=target,
+        config_path=config_path,
+        output_formats="json",
+    )
+    assert [path.suffix for path in result.report_paths] == [".json"]
+
+
+def test_unified_orchestrator_rejects_unknown_plugin_field(
+    tmp_path: Path,
+) -> None:
+    root = _framework(tmp_path)
+    _write_plugin(root, "alpha")
+    target = tmp_path / "target"
+    target.mkdir()
+    config_path = tmp_path / "uaaf.json"
+    config_path.write_text(
+        '{"plugins": {"alpha": {"threshhold": 7}}}',
+        encoding="utf-8",
+    )
+    with pytest.raises(ConfigValidationError, match="Unsupported configuration"):
+        UnifiedOrchestrator(framework_root=root).run(
+            project_path=target,
+            config_path=config_path,
+            output_formats="json",
+        )
+
+
+def test_unified_orchestrator_rejects_reserved_plugin_field(
+    tmp_path: Path,
+) -> None:
+    root = _framework(tmp_path)
+    _write_plugin(root, "alpha")
+    target = tmp_path / "target"
+    target.mkdir()
+    config_path = tmp_path / "uaaf.json"
+    config_path.write_text(
+        '{"plugins": {"alpha": {"project_path": "other"}}}',
+        encoding="utf-8",
+    )
+    with pytest.raises(ConfigValidationError, match="reserved"):
+        UnifiedOrchestrator(framework_root=root).run(
+            project_path=target,
+            config_path=config_path,
+            output_formats="json",
         )

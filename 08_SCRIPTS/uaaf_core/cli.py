@@ -5,15 +5,18 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
-from typing import Sequence
+from typing import Any, Sequence
 
-from uaaf_core.orchestrator import (
+from uaaf_core.config import (
     DEFAULT_OUTPUT_FORMATS,
-    UnifiedOrchestrator,
+    ResolvedConfig,
+    collect_explicit_cli_fields,
     merge_exclusions,
     normalize_fail_on,
     normalize_output_formats,
+    resolve_global_config,
 )
+from uaaf_core.orchestrator import UnifiedOrchestrator
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -82,8 +85,9 @@ def create_parser() -> argparse.ArgumentParser:
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
-    """Parse and normalize CLI arguments without executing an audit."""
+    """Parse CLI arguments while preserving which options were explicit."""
     parser = create_parser()
+    explicit_fields = collect_explicit_cli_fields(argv)
     args = parser.parse_args(argv)
     try:
         args.output_formats = normalize_output_formats(args.output_formats)
@@ -91,26 +95,46 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         args.exclude = merge_exclusions(args.exclude)
     except (TypeError, ValueError) as error:
         parser.error(str(error))
+    args._explicit_fields = explicit_fields
     return args
+
+def resolve_args_config(args: argparse.Namespace) -> ResolvedConfig:
+    """Resolve one parsed Namespace into canonical global configuration."""
+    return resolve_global_config(
+        cli_values=vars(args),
+        explicit_cli_fields=getattr(args, "_explicit_fields", ()),
+        config_path=args.config,
+    )
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     """Execute the unified UAAF CLI and return a process exit code."""
     args = parse_args(argv)
     try:
-        orchestrator = UnifiedOrchestrator(
-            framework_root=args.framework_root,
-            plugins_dir=args.plugins_dir,
-        )
-        result = orchestrator.run(
-            project_path=Path(args.project_path),
-            auditors=args.auditors,
-            output_formats=args.output_formats,
-            config_path=args.config,
-            fail_on=args.fail_on,
-            exclude=args.exclude,
-            output_dir=args.output_dir,
-        )
+        supports_resolved = hasattr(UnifiedOrchestrator, "run_resolved")
+        if supports_resolved:
+            resolved = resolve_args_config(args)
+            orchestrator = UnifiedOrchestrator(
+                framework_root=resolved.framework_root,
+                plugins_dir=resolved.plugins_dir,
+            )
+            result = orchestrator.run_resolved(resolved)
+        else:
+            # Compatibility for historical test doubles and third-party
+            # wrappers that implement only the pre-3.3 ``run`` method.
+            orchestrator = UnifiedOrchestrator(
+                framework_root=args.framework_root,
+                plugins_dir=args.plugins_dir,
+            )
+            result = orchestrator.run(
+                project_path=Path(args.project_path),
+                auditors=args.auditors,
+                output_formats=args.output_formats,
+                config_path=args.config,
+                fail_on=args.fail_on,
+                exclude=args.exclude,
+                output_dir=args.output_dir,
+            )
     except Exception as error:
         print(f"UAAF error: {error}", file=sys.stderr)
         return 2
@@ -126,5 +150,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"Report: {report_path}")
     return result.exit_code
 
-
-__all__ = ["create_parser", "main", "parse_args"]
+__all__ = [
+    "create_parser",
+    "main",
+    "parse_args",
+    "resolve_args_config",
+]

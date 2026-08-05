@@ -2,9 +2,9 @@
 
 ## 1. Estado actual del proyecto
 
-> Última actualización: 2026-08-04
-> Última sesión completada: Fase 3.2 — Plugin Registry dinámico
-> Próxima sesión: Fase 3.3 — Configuración global
+> Última actualización: 2026-08-05
+> Última sesión completada: Fase 3.3 — Configuración global
+> Próxima sesión: Fase 3.4 — Integración CI/CD
 
 ---
 
@@ -55,14 +55,15 @@ La primera fase estableció el contrato principal de auditoría arquitectónica 
 
 * ✅ **3.1 Orchestrator / CLI unificado — COMPLETADA**.
 * **3.2 Plugin Registry dinámico — ✅ COMPLETADA**.
-* **3.3 Configuración global — ⏳ SIGUIENTE OBJETIVO**.
-* ⏳ **3.4 Integración CI/CD**.
+* **3.3 Configuración global — ✅ COMPLETADA**.
+* ⏳ **3.4 Integración CI/CD — SIGUIENTE OBJETIVO**.
 * ⏳ **3.5 Exportación SARIF**.
 * ⏳ **3.6 Documentación pública**.
 
 ### Validación acumulada
 
-* **634 tests deterministas, todos pasando**.
+* **713 tests deterministas, todos pasando**.
+* **634 pruebas históricas preservadas y 79 pruebas nuevas agregadas en la Fase 3.3**.
 * Plataforma validada:
 
   * Windows.
@@ -85,6 +86,7 @@ La primera fase estableció el contrato principal de auditoría arquitectónica 
 | `08_SCRIPTS/uaaf_core/registry.py`                   | Existente | Registry que será consolidado en la Fase 3.2                    |
 | `08_SCRIPTS/uaaf_core/orchestrator.py`               |     1.0.0 | Descubrimiento, selección, ejecución y consolidación de plugins |
 | `08_SCRIPTS/uaaf_core/cli.py`                        |     1.0.0 | CLI unificada, configuración y códigos de salida                |
+| `08_SCRIPTS/uaaf_core/config.py`                     |     1.0.0 | Configuración global canónica, carga, precedencia y validación      |
 | `08_SCRIPTS/uaaf_core/reporting/report_engine.py`    |     1.0.0 | Motor de reportes Markdown y JSON                               |
 | `08_SCRIPTS/uaaf_core/reporting/__init__.py`         |         — | Exports del paquete de reporting                                |
 | `plugins/architecture/architecture_auditor.py`       |     1.6.0 | Auditor arquitectónico y análisis semántico                     |
@@ -569,57 +571,53 @@ Estas exclusiones no eliminan la deuda técnica. Únicamente permiten diferencia
 | --- | ---------------------------- | ---------------------------------- | -------------------- |
 | 3.1 | Orchestrator / CLI unificado | `orchestrator.py`, `cli.py`, tests | ✅ COMPLETADA         |
 | 3.2 | Plugin Registry dinámico     | `registry.py`, integración y tests | ✅ COMPLETADA |
-| 3.3 | Configuración global         | `uaaf.yaml` / `[tool.uaaf]`        | ⏳ SIGUIENTE OBJETIVO          |
-| 3.4 | CI/CD Integration            | `.github/workflows/uaaf.yml`       | ⏳ PENDIENTE          |
+| 3.3 | Configuración global         | `config.py`, CLI, Orchestrator, tests | ✅ COMPLETADA         |
+| 3.4 | CI/CD Integration            | `.github/workflows/uaaf.yml`          | ⏳ SIGUIENTE OBJETIVO |
 | 3.5 | Exportación SARIF            | `sarif_exporter.py`                | ⏳ PENDIENTE          |
 | 3.6 | Documentación pública        | `README.md`, `docs/`               | ⏳ PENDIENTE          |
 
 ---
 
-## 9. Próxima sesión — Fase 3.2
+## 9. Próxima sesión — Fase 3.4
 
 ### Objetivo único
 
-Implementar el Plugin Registry dinámico y convertir `UAAFRegistry` en la fuente canónica de:
+Implementar una integración CI/CD mínima y determinista mediante GitHub Actions que:
 
-* Descubrimiento de plugins.
-* Registro de plugins.
-* Validación de plugins.
-* Consulta de plugins.
-* Selección de plugins.
-* Metadatos de plugins.
-
-El Orchestrator debe consumir el Registry y dejar de mantener una implementación duplicada del descubrimiento.
+* Ejecute la suite completa de pytest.
+* Ejecute UAAF mediante `run.py`.
+* Utilice una configuración explícita adecuada para CI.
+* Aplique una política documentada de `--fail-on`.
+* Publique reportes Markdown y JSON como artifacts.
+* Preserve la semántica de `ResolvedConfig`, los códigos de salida y los cinco plugins.
+* No avance todavía a SARIF.
 
 ### Archivos que deben leerse primero
 
 1. `SESSION_CONTEXT.md`.
 2. `UAAF_SESSION_PLAN.md`.
-3. `08_SCRIPTS/uaaf_core/registry.py`.
-4. `08_SCRIPTS/uaaf_core/kernel.py`.
-5. `08_SCRIPTS/uaaf_core/runtime/runtime.py`.
-6. `08_SCRIPTS/uaaf_core/orchestrator.py`.
-7. `08_SCRIPTS/uaaf_core/cli.py`.
-8. `08_SCRIPTS/uaaf_core/audit/audit_result.py`.
-9. `09_TESTS/unit/test_orchestrator.py`.
-10. `09_TESTS/unit/test_cli.py`.
-11. Al menos dos plugins representativos bajo `plugins/*/`.
+3. `run.py`.
+4. `pyproject.toml`.
+5. `08_SCRIPTS/uaaf_core/config.py`.
+6. `08_SCRIPTS/uaaf_core/cli.py`.
+7. `08_SCRIPTS/uaaf_core/orchestrator.py`.
+8. `08_SCRIPTS/uaaf_core/registry.py`.
+9. `.gitignore`.
+10. Las pruebas relacionadas.
 
 ### Restricciones de compatibilidad
 
 Debe preservarse:
 
-* El contrato público de `AuditResult`.
-* El contrato `run(context)`.
-* El wrapper `execute()`.
-* El entry point `run.py`.
-* Los argumentos públicos de la CLI.
+* La suite actual de 713 pruebas.
+* `AuditResult`, `RuntimeContext`, `run(context)` y `execute()`.
+* `run.py` y todos los argumentos públicos de la CLI.
+* La precedencia `defaults < archivo < CLI explícita`.
+* `UAAFRegistry` como fuente canónica de plugins.
 * Los códigos de salida `0`, `1` y `2`.
-* El orden determinista.
-* Los cinco plugins existentes.
-* La integración con `RuntimeContext`.
-* La generación Markdown y JSON.
-* Los 634 tests actualmente pasando.
+* Los reportes Markdown y JSON.
+* Windows y Python 3.14 como entorno local validado.
+* La ausencia de dependencias Python externas nuevas.
 
 ---
 
@@ -643,7 +641,7 @@ python -m pytest -q
 Resultado actual esperado:
 
 ```text
-634 passed in 11.56s
+713 passed in 12.48s
 ```
 
 ### Ayuda de la CLI
@@ -854,3 +852,134 @@ Debe definir una configuración canónica y determinista, preservando la precede
 CLI > archivo de configuración > valores predeterminados
 ```
 <!-- UAAF_PHASE_3_2_SESSION_CONTEXT_END -->
+
+<!-- UAAF_PHASE_3_3_SESSION_CONTEXT_START -->
+## Cierre validado de la Fase 3.3 — Configuración global
+
+### Estado consolidado
+
+* ✅ **Fase 3.3 — Configuración global: COMPLETADA**.
+* ⏳ **Fase 3.4 — Integración CI/CD: SIGUIENTE OBJETIVO**.
+* Fecha de cierre validado: **2026-08-05**.
+
+### Arquitectura resultante
+
+```text
+run.py
+  -> CLI
+      -> ResolvedConfig
+          -> UnifiedOrchestrator.run_resolved()
+              -> UAAFRegistry
+                  -> Plugins
+              -> RuntimeContext
+              -> ReportEngine
+```
+
+`08_SCRIPTS/uaaf_core/config.py` es la fuente canónica de configuración de ejecución. La configuración final se resuelve antes de iniciar plugins y aplica la precedencia exacta:
+
+```text
+valores predeterminados < archivo de configuración < argumentos explícitos de CLI
+```
+
+La CLI conserva sus valores visibles históricos, pero registra por separado qué argumentos fueron proporcionados explícitamente. El Orchestrator conserva `run()` como adaptador compatible y expone `run_resolved()` como vía canónica para ejecutar una configuración ya resuelta.
+
+### Contratos implementados
+
+* Representación final inmutable mediante `ResolvedConfig`.
+* Representación parcial mediante `ConfigOverrides` y el sentinel `UNSET`.
+* Carga UTF-8 de `.json`, `.toml`, `.yaml` y `.yml`.
+* Soporte de `[tool.uaaf]` en TOML.
+* Parser YAML limitado, determinista y sin dependencias externas.
+* Normalización estable de auditores, formatos, severidades y exclusiones.
+* Rutas relativas de CLI resueltas respecto del directorio de trabajo.
+* Rutas del archivo resueltas respecto del directorio del archivo.
+* Aliases históricos compatibles: `global`, `ignored_directories` y `auditors` como mapping.
+* Validación de campos globales y configuraciones específicas por plugin.
+* Rechazo de campos reservados `project_path` y `audit_type` en secciones de plugins.
+* Snapshot de diagnóstico determinista con redacción de claves sensibles.
+* Errores de configuración claros convertidos en código de salida `2`.
+* `UAAFRegistry` preservado como fuente canónica de plugins.
+* `RuntimeContext`, `AuditResult`, `ReportEngine`, `run.py` y los cinco plugins preservados.
+
+### Archivos implementados
+
+```text
+08_SCRIPTS/uaaf_core/config.py
+08_SCRIPTS/uaaf_core/cli.py
+08_SCRIPTS/uaaf_core/orchestrator.py
+09_TESTS/unit/test_global_config.py
+09_TESTS/unit/test_cli.py
+09_TESTS/unit/test_orchestrator.py
+```
+
+No fue necesario modificar:
+
+```text
+08_SCRIPTS/uaaf_core/registry.py
+08_SCRIPTS/uaaf_core/runtime/runtime.py
+08_SCRIPTS/uaaf_core/runtime/runtime_context.py
+08_SCRIPTS/uaaf_core/audit/audit_result.py
+08_SCRIPTS/uaaf_core/reporting/report_engine.py
+run.py
+plugins/*
+```
+
+### Validación automatizada
+
+Pruebas de configuración global:
+
+```text
+68 passed in 1.60s
+```
+
+Pruebas relacionadas con configuración, CLI, Orchestrator y Registry:
+
+```text
+203 passed in 3.69s
+```
+
+Suite completa:
+
+```text
+713 passed in 12.48s
+```
+
+Composición:
+
+* 634 pruebas anteriores preservadas.
+* 79 pruebas nuevas agregadas en la Fase 3.3.
+* Cero regresiones.
+
+### Smoke tests validados
+
+* `python run.py --help`: exit code `0`.
+* Sin archivo de configuración: 5 auditores, 1027 findings, Markdown y JSON, exit code `0`.
+* Subset: 3 auditores, 645 findings, Markdown y JSON, exit code `0`.
+* JSON: 3 auditores, 645 findings, Markdown y JSON, exit code `0`.
+* TOML: 2 auditores, 418 findings, Markdown y JSON, exit code `0`.
+* YAML limitado: 2 auditores, 641 findings, Markdown y JSON, exit code `0`.
+* Precedencia: la CLI sobrescribió auditores, formato y directorio del archivo; `PRECEDENCE OK`.
+* Campo desconocido: exit code `2`.
+* Tipo inválido: exit code `2`.
+* Extensión no soportada: exit code `2`.
+* Archivo inexistente: exit code `2`.
+
+Los conteos de findings son resultados operativos del estado actual del repositorio y no deben convertirse en aserciones rígidas salvo con fixtures controlados.
+
+### Deuda técnica y límites preservados
+
+* El YAML soportado es deliberadamente limitado; no se implementó un parser YAML general.
+* No se agregaron dependencias externas.
+* No se creó todavía un archivo `uaaf.yaml` predeterminado ni se modificó `pyproject.toml`; la infraestructura admite archivos explícitos mediante `--config`.
+* JSON Schemas, GitHub Actions, SARIF, paralelización, caché, auditoría incremental y auto-remediation permanecen fuera de esta fase.
+
+### Continuidad
+
+La siguiente sesión corresponde a:
+
+```text
+Fase 3.4 — Integración CI/CD
+```
+
+Debe implementar una integración de GitHub Actions mínima y determinista, ejecutar la suite completa y UAAF, conservar los códigos de salida, y publicar reportes Markdown/JSON como artifacts sin modificar la semántica de configuración global.
+<!-- UAAF_PHASE_3_3_SESSION_CONTEXT_END -->
