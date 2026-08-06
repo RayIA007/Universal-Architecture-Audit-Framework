@@ -99,7 +99,7 @@ def test_workflow_uses_windows_runner_without_matrix() -> None:
 
 
 def test_workflow_has_bounded_execution_time() -> None:
-    assert re.search(r"(?m)^    timeout-minutes:\s+15\s*$", _workflow_text())
+    assert re.search(r"(?m)^    timeout-minutes:\s+30\s*$", _workflow_text())
 
 
 def test_workflow_cancels_superseded_runs() -> None:
