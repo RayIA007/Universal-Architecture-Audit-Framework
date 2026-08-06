@@ -151,6 +151,10 @@ def test_dependency_installation_is_minimal_and_pinned() -> None:
         r"python -m pip install[^\n]*pytest==9\.1\.1",
         text,
     )
+    assert re.search(
+        r"python -m pip install[^\n]*PyYAML==6\.0\.3",
+        text,
+    )
     assert "pip install -e" not in text.casefold()
     assert "requirements.txt" not in text.casefold()
 
