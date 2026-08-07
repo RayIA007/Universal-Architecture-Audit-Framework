@@ -2,10 +2,10 @@
 
 ## 1. Estado actual del proyecto
 
-> Última actualización: 2026-08-06
-> Última fase con validación local completada: Fase 3.5 — Exportación SARIF
-> Validación remota de la Fase 3.4: completada con éxito
-> Próxima validación: carga SARIF y GitHub Code Scanning; después, Fase 3.6
+> Última actualización: 2026-08-07
+> Última fase completada y validada remotamente: Fase 3.5 — Exportación SARIF
+> Validación remota de la Fase 3.5: completada con éxito
+> Próxima fase: Fase 3.6 — Documentación pública
 
 ---
 
@@ -58,15 +58,15 @@ La primera fase estableció el contrato principal de auditoría arquitectónica 
 * **3.2 Plugin Registry dinámico — ✅ COMPLETADA**.
 * **3.3 Configuración global — ✅ COMPLETADA**.
 * ✅ **3.4 Integración CI/CD — COMPLETADA Y VALIDADA REMOTAMENTE**.
-* 🧪 **3.5 Exportación SARIF — IMPLEMENTADA Y VALIDADA LOCALMENTE; VALIDACIÓN REMOTA PENDIENTE**.
-* ⏳ **3.6 Documentación pública — SIGUIENTE DESPUÉS DE VALIDAR SARIF REMOTO**.
+* ✅ **3.5 Exportación SARIF — COMPLETADA Y VALIDADA REMOTAMENTE**.
+* ▶️ **3.6 Documentación pública — SIGUIENTE FASE**.
 
 ### Validación acumulada
 
 * **820 tests deterministas, todos pasando localmente**.
 * **750 pruebas anteriores preservadas y 70 pruebas nuevas agregadas en la Fase 3.5**.
 * **Fase 3.4 validada remotamente mediante `workflow_dispatch`: ejecución #4, commit `fb3f72b`, conclusión `success`**.
-* **Validación remota de la carga SARIF y GitHub Code Scanning pendiente después del push**.
+* **Fase 3.5 validada remotamente: ejecución #6, commit `62424728d1609233d933207e1a58747153f304bc`, conclusión `success`; los pasos `Upload SARIF to GitHub Code Scanning` y `Post Upload SARIF to GitHub Code Scanning` finalizaron en `success`**.
 * Plataforma validada:
 
   * Windows.
@@ -580,31 +580,39 @@ Estas exclusiones no eliminan la deuda técnica. Únicamente permiten diferencia
 | 3.2 | Plugin Registry dinámico     | `registry.py`, integración y tests | ✅ COMPLETADA |
 | 3.3 | Configuración global         | `config.py`, CLI, Orchestrator, tests | ✅ COMPLETADA         |
 | 3.4 | Integración CI/CD            | `.github/workflows/uaaf-ci.yml`, tests | ✅ COMPLETADA / REMOTO OK |
-| 3.5 | Exportación SARIF            | `sarif_exporter.py`, integración y tests | 🧪 LOCAL OK / REMOTO PENDIENTE |
-| 3.6 | Documentación pública        | `README.md`, `docs/`               | ⏳ SIGUIENTE DESPUÉS DE SARIF |
+| 3.5 | Exportación SARIF            | `sarif_exporter.py`, integración y tests | ✅ COMPLETADA / REMOTO OK |
+| 3.6 | Documentación pública        | `README.md`, `docs/`               | ▶️ SIGUIENTE FASE |
 
 ---
 
-## 9. Próxima validación — Fase 3.5
+## 9. Próxima fase — Fase 3.6
 
 ### Estado actual
 
-La implementación SARIF está terminada y validada localmente. La Fase 3.4 ya cuenta con una ejecución remota exitosa en GitHub Actions.
+La Fase 3.5 — Exportación SARIF está completada y validada tanto local como remotamente.
+
+La primera ejecución remota de la Fase 3.5 detectó una incompatibilidad real con GitHub Code Scanning: algunos findings sin una ubicación exportable producían resultados SARIF sin `locations`. GitHub rechazó esa carga en la ejecución #5.
+
+La corrección conserva los findings en el resultado canónico de UAAF y en Markdown/JSON, pero omite de `results[]` SARIF aquellos findings para los que no existe una ubicación exportable segura. No se inventan rutas, columnas, rangos ni fingerprints.
 
 ```text
-Fase 3.4 remota: success
 Fase 3.5 local: 820 passed
-carga SARIF remota: pendiente
-GitHub Code Scanning: pendiente
+primer intento remoto: run #5, commit 77865f5, failure
+causa: Code Scanning rechazó resultados SARIF sin locations
+commit correctivo: 6242472
+commit correctivo completo: 62424728d1609233d933207e1a58747153f304bc
+validación remota final: run #6, success
+Upload SARIF to GitHub Code Scanning: success
+Post Upload SARIF to GitHub Code Scanning: success
 ```
 
 ### Objetivo siguiente
 
-Realizar el commit y push de la Fase 3.5, observar el workflow `UAAF CI`, confirmar la carga mediante `github/codeql-action/upload-sarif@v4` y verificar que GitHub Code Scanning procese los resultados.
+Iniciar la Fase 3.6 — Documentación pública, actualizando `README.md` y `docs/` para reflejar la arquitectura, instalación, CLI, configuración, plugins, severidades, códigos de salida, ejemplos, SARIF, CI/CD y troubleshooting del estado real del proyecto.
 
 ### Restricción
 
-No registrar la Fase 3.5 como cerrada remotamente ni comenzar la Fase 3.6 hasta disponer de evidencia real del workflow y de Code Scanning.
+Preservar los 820 tests actuales, los contratos públicos existentes, los formatos Markdown/JSON/SARIF, la configuración global, Registry, UnifiedOrchestrator, RuntimeContext, AuditResult y los códigos de salida `0`, `1` y `2`.
 
 ---
 
@@ -1037,13 +1045,16 @@ La condición previa para iniciar la Fase 3.5 quedó satisfecha.
 <!-- UAAF_PHASE_3_4_SESSION_CONTEXT_END -->
 
 <!-- UAAF_PHASE_3_5_SESSION_CONTEXT_START -->
-## Implementación y validación local de la Fase 3.5 — Exportación SARIF
+## Implementación y validación final de la Fase 3.5 — Exportación SARIF
 
 ### Estado consolidado
 
 * ✅ **Implementación completada y validada localmente el 2026-08-06**.
-* ⏳ **Validación remota del workflow SARIF y GitHub Code Scanning pendiente después del push**.
-* La fase no debe registrarse como cerrada remotamente hasta observar el workflow y la carga real del archivo SARIF.
+* ⚠️ **Primer intento remoto:** ejecución #5 sobre el commit `77865f5`, conclusión `failure`.
+* ✅ **Corrección de interoperabilidad SARIF:** commit `6242472`.
+* ✅ **Validación remota final:** ejecución #6 sobre `62424728d1609233d933207e1a58747153f304bc`, conclusión `success`.
+* ✅ **GitHub Code Scanning:** pasos de carga y post-carga SARIF finalizados en `success`.
+* ✅ **Fase 3.5 cerrada y validada remotamente el 2026-08-07**.
 
 ### Arquitectura implementada
 
@@ -1071,6 +1082,7 @@ Contrato:
 * Redacción de rutas absolutas mediante `<PROJECT_ROOT>`.
 * Compatibilidad con representaciones Windows escapadas.
 * Propiedades conservadoras sin copiar detalles arbitrarios potencialmente sensibles.
+* Findings sin ubicación exportable segura permanecen en el resultado canónico UAAF y en Markdown/JSON, pero se omiten de `results[]` SARIF para cumplir el contrato operativo de GitHub Code Scanning.
 
 ### Integración
 
@@ -1116,6 +1128,8 @@ Composición:
 * 750 pruebas anteriores preservadas.
 * 70 pruebas nuevas agregadas.
 * Cero regresiones.
+* Validación posterior al hotfix: `53 passed in 0.96s`.
+* Suite completa posterior al hotfix: `820 passed in 26.97s`.
 
 ### Validaciones funcionales
 
@@ -1132,6 +1146,40 @@ HashB: 26B549B9F432F71B22B89E2267338D361622A2410000E1B88A73D1B02849291B
 Identical: True
 ```
 
+### Validación remota y corrección de interoperabilidad
+
+Primer intento remoto:
+
+```text
+run: #5
+commit: 77865f5
+status: completed
+conclusion: failure
+```
+
+GitHub Code Scanning rechazó la carga porque existían resultados SARIF sin al menos una ubicación exportable.
+
+Corrección aplicada:
+
+```text
+commit: 6242472
+regla: si un finding no tiene URI exportable segura, no se emite en results[] SARIF
+resultado canónico UAAF: preservado
+Markdown/JSON: preservados
+ubicaciones inventadas: ninguna
+```
+
+Validación remota final:
+
+```text
+run: #6
+commit: 62424728d1609233d933207e1a58747153f304bc
+status: completed
+conclusion: success
+Upload SARIF to GitHub Code Scanning: success
+Post Upload SARIF to GitHub Code Scanning: success
+```
+
 ### Compatibilidad preservada
 
 * Markdown y JSON.
@@ -1145,12 +1193,16 @@ Identical: True
 ### Continuidad
 
 ```text
-implementación SARIF validada localmente
-validación remota de carga SARIF pendiente
-GitHub Code Scanning pendiente
+implementación SARIF validada localmente: 820 passed
+run remoto inicial #5: failure
+commit correctivo: 6242472
+run remoto final #6: success
+Upload SARIF to GitHub Code Scanning: success
+Post Upload SARIF to GitHub Code Scanning: success
+Fase 3.5: COMPLETADA Y VALIDADA REMOTAMENTE
 ```
 
-La siguiente fase, únicamente después de la validación remota, será:
+La siguiente fase es:
 
 ```text
 Fase 3.6 — Documentación pública

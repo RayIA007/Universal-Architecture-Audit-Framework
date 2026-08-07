@@ -392,8 +392,8 @@ Extender el Architecture Auditor con análisis estático semántico avanzado, pr
 | 3.2 | Plugin Registry dinámico     | `registry.py`, integración y tests | ✅ COMPLETADA |
 | 3.3 | Configuración global         | `config.py`, CLI, Orchestrator, tests | ✅ COMPLETADA         |
 | 3.4 | Integración CI/CD            | GitHub Actions                         | ✅ COMPLETADA         |
-| 3.5 | Exportación SARIF            | `sarif_exporter.py`, integración y tests | 🧪 LOCAL OK / REMOTO PENDIENTE |
-| 3.6 | Documentación pública        | `README.md`, `docs/`               | ⏳ SIGUIENTE DESPUÉS DE SARIF |
+| 3.5 | Exportación SARIF            | `sarif_exporter.py`, integración y tests | ✅ COMPLETADA / REMOTO OK |
+| 3.6 | Documentación pública        | `README.md`, `docs/`               | ▶️ SIGUIENTE FASE |
 
 ---
 
@@ -829,7 +829,7 @@ conclusión: success
 
 #### Estado
 
-🧪 IMPLEMENTADA Y VALIDADA LOCALMENTE; VALIDACIÓN REMOTA PENDIENTE
+✅ COMPLETADA Y VALIDADA REMOTAMENTE
 
 #### Checklist
 
@@ -847,8 +847,8 @@ conclusión: success
 * [x] Validar determinismo.
 * [x] Preparar carga mediante `upload-sarif@v4`.
 * [x] Proteger pull requests provenientes de forks.
-* [ ] Validar ejecución remota.
-* [ ] Validar GitHub Code Scanning.
+* [x] Validar ejecución remota.
+* [x] Validar GitHub Code Scanning.
 
 ---
 
@@ -856,7 +856,7 @@ conclusión: success
 
 #### Estado
 
-⏳ PENDIENTE
+▶️ SIGUIENTE FASE
 
 #### Checklist preliminar
 
@@ -929,23 +929,24 @@ Estas fases no forman parte de la primera versión terminada y deberán planific
 
 ## 9. Próxima sesión activa
 
-**Fase**: validación remota de 3.5 y preparación de 3.6
-**Componente inmediato**: GitHub Actions y GitHub Code Scanning
-**Estado**: implementación SARIF validada localmente; validación remota pendiente
+**Fase**: 3.6 — Documentación pública
+**Componente inmediato**: `README.md` y `docs/`
+**Estado**: lista para iniciar; Fase 3.5 cerrada y validada remotamente
 
-### Acción obligatoria antes de documentación pública
+### Evidencia que habilita la Fase 3.6
 
-1. Revisar el diff final.
-2. Crear el commit de la Fase 3.5.
-3. Realizar el push a `main`.
-4. Confirmar que `UAAF CI` termina con `success`.
-5. Confirmar que `upload-sarif@v4` carga el archivo.
-6. Verificar resultados reales en GitHub Code Scanning.
-7. Registrar la evidencia remota en ambos documentos.
+```text
+Fase 3.5 local: 820 passed
+primer intento remoto: run #5, commit 77865f5, failure
+commit correctivo: 6242472
+validación remota final: run #6, success
+Upload SARIF to GitHub Code Scanning: success
+Post Upload SARIF to GitHub Code Scanning: success
+```
 
 ### Próxima implementación
 
-Después de esas comprobaciones, la siguiente sesión técnica será:
+La siguiente sesión técnica será:
 
 ```text
 Fase 3.6 — Documentación pública
@@ -958,7 +959,7 @@ Debe preservar las 820 pruebas actuales, Markdown, JSON, SARIF, configuración g
 ## 10. Prompt para iniciar la siguiente sesión
 
 ```text
-ROL: Actúa como Arquitecto Senior de Software e IA, Ingeniero Full Stack especialista en Python, GitHub Actions, SARIF 2.1.0, análisis estático, sistemas de plugins, Prompt Engineer, Context Engineer y Agent Engineer.
+ROL: Actúa como Arquitecto Senior de Software e IA, Ingeniero Full Stack especialista en Python, documentación técnica, GitHub Actions, SARIF 2.1.0, análisis estático, sistemas de plugins, Prompt Engineer, Context Engineer y Agent Engineer.
 
 Contexto: Estoy continuando el proyecto UAAF — Universal Architecture Audit Framework.
 
@@ -969,32 +970,38 @@ Estado validado:
 - Fase 3.3 — Configuración global completada.
 - Fase 3.4 — Integración CI/CD completada y validada remotamente.
 - Evidencia 3.4: workflow_dispatch, ejecución #4, commit fb3f72b, conclusión success.
-- Fase 3.5 — Exportación SARIF implementada y validada localmente.
+- Fase 3.5 — Exportación SARIF COMPLETADA Y VALIDADA REMOTAMENTE.
 - 53 pruebas específicas SARIF.
-- 286 pruebas relacionadas.
-- 820 pruebas totales pasando.
+- 286 pruebas relacionadas de la validación inicial.
+- 820 pruebas totales pasando después del hotfix.
 - Markdown, JSON y SARIF funcionan conjuntamente.
 - Redacción de rutas validada: 0 leaks en mensajes y locations.
 - Determinismo SARIF confirmado.
-- Validación remota de SARIF y GitHub Code Scanning pendiente.
+- Primer intento remoto de 3.5: ejecución #5 sobre 77865f5, conclusion failure porque GitHub Code Scanning rechazó resultados SARIF sin locations.
+- Corrección: commit 6242472; los findings sin ubicación exportable se conservan en el resultado canónico y Markdown/JSON, pero se omiten de results[] SARIF.
+- Validación remota final de 3.5: ejecución #6 sobre 62424728d1609233d933207e1a58747153f304bc, conclusion success.
+- Upload SARIF to GitHub Code Scanning: success.
+- Post Upload SARIF to GitHub Code Scanning: success.
 - UAAFRegistry, ResolvedConfig, UnifiedOrchestrator, RuntimeContext, AuditResult, Report Engine, run.py y los cinco plugins permanecen compatibles.
 
 Lee primero:
 1. SESSION_CONTEXT.md
 2. UAAF_SESSION_PLAN.md
-3. .github/workflows/uaaf-ci.yml
-4. 08_SCRIPTS/uaaf_core/reporting/sarif_exporter.py
-5. 08_SCRIPTS/uaaf_core/reporting/report_engine.py
-6. 09_TESTS/unit/test_sarif_exporter.py
-7. 09_TESTS/unit/test_ci_workflow.py
+3. README.md
+4. .github/workflows/uaaf-ci.yml
+5. 08_SCRIPTS/uaaf_core/cli.py
+6. 08_SCRIPTS/uaaf_core/config.py
+7. 08_SCRIPTS/uaaf_core/orchestrator.py
+8. 08_SCRIPTS/uaaf_core/registry.py
+9. 08_SCRIPTS/uaaf_core/reporting/report_engine.py
+10. 08_SCRIPTS/uaaf_core/reporting/sarif_exporter.py
 
-Objetivo inicial obligatorio:
-Verificar y documentar el resultado remoto real del workflow UAAF CI, del paso upload-sarif@v4 y de GitHub Code Scanning. No inventes su estado.
+Objetivo único de ESTA sesión:
+Implementar la Fase 3.6 — Documentación pública.
 
-Objetivo técnico posterior:
-Iniciar la Fase 3.6 — Documentación pública únicamente después de confirmar la validación remota SARIF.
+La documentación debe reflejar únicamente el comportamiento real y validado del repositorio. Actualiza README.md y la documentación necesaria en docs/ para cubrir, como mínimo: propósito y arquitectura de UAAF, requisitos e instalación, uso de la CLI, configuración global y precedencia, plugins disponibles, reporting Markdown/JSON/SARIF, severidades, códigos de salida, CI/CD y Code Scanning, ejemplos reproducibles, troubleshooting y contribución.
 
-Preserva las 820 pruebas actuales, Markdown, JSON, SARIF, configuración global, Registry, RuntimeContext, AuditResult y los códigos de salida 0, 1 y 2. No avances a paralelización, caché AST, auditoría incremental, dashboard, API, Docker, despliegues ni auto-remediation.
+Preserva las 820 pruebas actuales y todos los contratos públicos. No avances a paralelización, caché AST, auditoría incremental, dashboard, API, Docker, despliegues ni auto-remediation.
 ```
 
 ---
@@ -1228,12 +1235,12 @@ La ejecución remota `#4` del workflow `UAAF CI` concluyó con `success` sobre e
 <!-- UAAF_PHASE_3_4_SESSION_PLAN_END -->
 
 <!-- UAAF_PHASE_3_5_SESSION_PLAN_START -->
-## Registro de implementación y validación local — Fase 3.5
+## Registro de implementación y validación final — Fase 3.5
 
 ### Estado
 
 ✅ **IMPLEMENTADA Y VALIDADA LOCALMENTE el 2026-08-06**.
-⏳ **VALIDACIÓN REMOTA DE SARIF Y GITHUB CODE SCANNING PENDIENTE**.
+✅ **VALIDADA REMOTAMENTE Y CERRADA el 2026-08-07**.
 
 ### Entregables
 
@@ -1253,8 +1260,8 @@ La ejecución remota `#4` del workflow `UAAF CI` concluyó con `success` sobre e
 * [x] Protección para pull requests de forks.
 * [x] Pruebas específicas, contractuales y de integración.
 * [x] Determinismo validado.
-* [ ] Confirmar ejecución remota exitosa.
-* [ ] Confirmar resultados en GitHub Code Scanning.
+* [x] Confirmar ejecución remota exitosa.
+* [x] Confirmar carga SARIF aceptada por GitHub Code Scanning.
 
 ### Resultados reales
 
@@ -1281,6 +1288,46 @@ SHA-256 determinista:
 26B549B9F432F71B22B89E2267338D361622A2410000E1B88A73D1B02849291B
 ```
 
+### Corrección y evidencia remota
+
+Primer intento:
+
+```text
+run: #5
+commit: 77865f5
+status: completed
+conclusion: failure
+causa: GitHub Code Scanning rechazó resultados SARIF sin locations
+```
+
+Corrección:
+
+```text
+commit: 6242472
+comportamiento: findings sin ubicación exportable segura se omiten de results[] SARIF
+resultado canónico UAAF: preservado
+Markdown/JSON: preservados
+ubicaciones inventadas: ninguna
+```
+
+Validación local posterior al hotfix:
+
+```text
+53 passed in 0.96s
+820 passed in 26.97s
+```
+
+Validación remota final:
+
+```text
+run: #6
+commit: 62424728d1609233d933207e1a58747153f304bc
+status: completed
+conclusion: success
+Upload SARIF to GitHub Code Scanning: success
+Post Upload SARIF to GitHub Code Scanning: success
+```
+
 ### Compatibilidad
 
 * [x] 750 pruebas anteriores preservadas.
@@ -1293,11 +1340,13 @@ SHA-256 determinista:
 * [x] Cinco plugins preservados.
 * [x] Sin dependencias productivas nuevas.
 
-### Cierre pendiente
+### Cierre
 
 ```text
-implementación local completada
-validación remota SARIF pendiente
-Code Scanning pendiente
+implementación local: completada
+validación remota SARIF: completada
+GitHub Code Scanning: success
+Fase 3.5: COMPLETADA Y VALIDADA REMOTAMENTE
+siguiente fase: 3.6 — Documentación pública
 ```
 <!-- UAAF_PHASE_3_5_SESSION_PLAN_END -->
