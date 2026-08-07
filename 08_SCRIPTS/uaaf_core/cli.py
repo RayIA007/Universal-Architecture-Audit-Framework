@@ -25,7 +25,7 @@ def create_parser() -> argparse.ArgumentParser:
         prog="python run.py",
         description=(
             "Discover and execute UAAF auditor plugins, then generate a "
-            "consolidated Markdown and/or JSON report."
+            "consolidated Markdown, JSON, and/or SARIF report."
         ),
     )
     parser.add_argument(
@@ -44,7 +44,7 @@ def create_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--output-formats",
         default=",".join(DEFAULT_OUTPUT_FORMATS),
-        help="Comma-separated report formats: markdown,json.",
+        help="Comma-separated report formats: markdown,json,sarif.",
     )
     parser.add_argument(
         "--config",

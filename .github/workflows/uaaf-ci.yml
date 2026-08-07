@@ -21,6 +21,9 @@ jobs:
     name: Windows / Python 3.14.6
     runs-on: windows-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
 
     steps:
       - name: Check out repository
@@ -66,7 +69,7 @@ jobs:
           python run.py `
               --project-path "12_EXAMPLES/sample_project" `
               --auditors "configuration" `
-              --output-formats "markdown,json" `
+              --output-formats "markdown,json,sarif" `
               --output-dir $smokeOutput
 
           if ($LASTEXITCODE -ne 0) {
@@ -79,6 +82,9 @@ jobs:
           $jsonReports = @(
               Get-ChildItem -LiteralPath $smokeOutput -Filter "*.json" -File
           )
+          $sarifReports = @(
+              Get-ChildItem -LiteralPath $smokeOutput -Filter "*.sarif" -File
+          )
 
           if ($markdownReports.Count -lt 1) {
               throw "The CLI smoke test did not create a Markdown report."
@@ -86,5 +92,33 @@ jobs:
           if ($jsonReports.Count -lt 1) {
               throw "The CLI smoke test did not create a JSON report."
           }
+          if ($sarifReports.Count -ne 1) {
+              throw "The CLI smoke test must create exactly one SARIF report."
+          }
 
-          Write-Host "CLI smoke test created Markdown and JSON reports."
+          $sarifPath = $sarifReports[0].FullName
+          $sarifText = Get-Content -LiteralPath $sarifPath -Raw -Encoding UTF8
+          $sarifDocument = $sarifText | ConvertFrom-Json
+          if ($sarifDocument.version -ne "2.1.0") {
+              throw "The SARIF smoke report does not declare version 2.1.0."
+          }
+          if ($null -eq $sarifDocument.runs -or $sarifDocument.runs.Count -ne 1) {
+              throw "The SARIF smoke report must contain exactly one run."
+          }
+          if ($sarifText -match '(?i)\b[A-Z]:[\\/]') {
+              throw "The SARIF smoke report contains an absolute Windows path."
+          }
+
+          "UAAF_SARIF_PATH=$sarifPath" |
+              Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+          Write-Host "CLI smoke test created Markdown, JSON, and SARIF reports."
+
+      - name: Upload SARIF to GitHub Code Scanning
+        if: >-
+          github.event_name != 'pull_request' ||
+          github.event.pull_request.head.repo.full_name == github.repository
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: ${{ env.UAAF_SARIF_PATH }}
+          category: uaaf

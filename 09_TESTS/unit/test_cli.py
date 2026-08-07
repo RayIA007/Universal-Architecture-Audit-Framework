@@ -360,3 +360,17 @@ def test_main_returns_two_for_invalid_configuration_file(
 ) -> None:
     assert cli.main(["--config", str(tmp_path / "missing.json")]) == 2
     assert "does not exist" in capsys.readouterr().err
+
+# ---------------------------------------------------------------------
+# SARIF CLI support — Fase 3.5
+# ---------------------------------------------------------------------
+
+
+def test_parse_args_accepts_sarif() -> None:
+    args = cli.parse_args(["--output-formats", "markdown,json,sarif"])
+    assert args.output_formats == ("markdown", "json", "sarif")
+
+
+def test_cli_help_mentions_sarif() -> None:
+    help_text = cli.create_parser().format_help()
+    assert "markdown,json,sarif" in help_text

@@ -679,3 +679,70 @@ def test_unredacted_snapshot_is_deterministically_sorted(
     snapshot = config.to_dict(redact_sensitive=False)
     assert list(snapshot["plugin_defaults"]) == ["alpha", "zeta"]
     assert list(snapshot["plugin_configs"]["zeta"]) == ["a", "b"]
+
+# ---------------------------------------------------------------------
+# SARIF output-format support — Fase 3.5
+# ---------------------------------------------------------------------
+
+
+def test_normalize_output_formats_accepts_sarif() -> None:
+    assert normalize_output_formats("sarif") == ("sarif",)
+
+
+def test_normalize_output_formats_combines_and_deduplicates_sarif() -> None:
+    assert normalize_output_formats("markdown,SARIF,json,sarif") == (
+        "markdown",
+        "sarif",
+        "json",
+    )
+
+
+def test_resolve_sarif_from_json(framework: Path, project: Path) -> None:
+    config_path = framework / "sarif.json"
+    config_path.write_text(
+        json.dumps({"project_path": str(project), "output_formats": ["sarif"]}),
+        encoding="utf-8",
+    )
+    config = resolve_global_config(
+        config_path=config_path,
+        framework_root_default=framework,
+    )
+    assert config.output_formats == ("sarif",)
+
+
+def test_resolve_sarif_from_toml(framework: Path, project: Path) -> None:
+    config_path = framework / "sarif.toml"
+    config_path.write_text(
+        f'project_path = {str(project)!r}\noutput_formats = ["sarif"]\n',
+        encoding="utf-8",
+    )
+    config = resolve_global_config(
+        config_path=config_path,
+        framework_root_default=framework,
+    )
+    assert config.output_formats == ("sarif",)
+
+
+def test_resolve_sarif_from_yaml(framework: Path, project: Path) -> None:
+    config_path = framework / "sarif.yaml"
+    config_path.write_text(
+        f"project_path: {project}\noutput_formats: [sarif]\n",
+        encoding="utf-8",
+    )
+    config = resolve_global_config(
+        config_path=config_path,
+        framework_root_default=framework,
+    )
+    assert config.output_formats == ("sarif",)
+
+
+def test_sarif_is_opt_in_and_defaults_remain_historical(
+    framework: Path,
+    project: Path,
+) -> None:
+    config = resolve_global_config(
+        cli_values={"project_path": str(project)},
+        explicit_cli_fields={"project_path"},
+        framework_root_default=framework,
+    )
+    assert config.output_formats == ("markdown", "json")

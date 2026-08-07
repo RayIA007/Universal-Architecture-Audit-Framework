@@ -430,3 +430,46 @@ def test_module_level_convenience_functions(empty_result: AuditResult) -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
         path = write_report(empty_result, "json", tmpdir)
         assert path.exists()
+
+# =====================================================================
+# SARIF generation — Fase 3.5
+# =====================================================================
+
+
+def test_normalize_format_sarif(engine: ReportEngine) -> None:
+    assert engine._normalize_format("sarif") == "sarif"
+    assert engine._normalize_format("  SARIF  ") == "sarif"
+
+
+def test_build_file_path_sarif(engine: ReportEngine, empty_result: AuditResult) -> None:
+    data = empty_result.to_dict()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        path = engine._build_file_path(data, "sarif", tmpdir)
+        assert path.suffix == ".sarif"
+        assert path.name.endswith("_test-plugin_test.sarif")
+
+
+def test_to_sarif_generates_valid_root(
+    engine: ReportEngine,
+    result_with_findings: AuditResult,
+) -> None:
+    parsed = json.loads(engine.to_sarif(result_with_findings))
+    assert parsed["version"] == "2.1.0"
+    assert len(parsed["runs"]) == 1
+    assert len(parsed["runs"][0]["results"]) == 4
+
+
+def test_write_report_sarif(engine: ReportEngine, empty_result: AuditResult) -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        path = engine.write_report(empty_result, "sarif", tmpdir)
+        assert path.exists()
+        assert path.suffix == ".sarif"
+        parsed = json.loads(path.read_text(encoding="utf-8"))
+        assert parsed["version"] == "2.1.0"
+
+
+def test_module_level_to_sarif(empty_result: AuditResult) -> None:
+    from uaaf_core.reporting.report_engine import to_sarif
+
+    parsed = json.loads(to_sarif(empty_result))
+    assert parsed["runs"][0]["tool"]["driver"]["name"] == "UAAF"

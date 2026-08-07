@@ -76,7 +76,7 @@ def test_workflow_avoids_privileged_or_unneeded_events() -> None:
     assert not re.search(r"(?m)^\s*workflow_run:\s*$", text)
 
 
-def test_permissions_are_read_only() -> None:
+def test_top_level_permissions_are_read_only() -> None:
     permissions = _top_level_block(_workflow_text(), "permissions")
     permission_lines = [
         line.strip()
@@ -131,7 +131,11 @@ def test_setup_python_is_official_and_pins_python() -> None:
 
 def test_only_expected_official_actions_are_used() -> None:
     uses = re.findall(r"(?m)^\s*uses:\s*([^\s#]+)", _workflow_text())
-    assert uses == ["actions/checkout@v7", "actions/setup-python@v7"]
+    assert uses == [
+        "actions/checkout@v7",
+        "actions/setup-python@v7",
+        "github/codeql-action/upload-sarif@v4",
+    ]
 
 
 @pytest.mark.parametrize("mutable_ref", ["@main", "@master", "@latest"])
@@ -176,7 +180,7 @@ def test_smoke_test_uses_controlled_project_and_subset() -> None:
     text = _workflow_text()
     assert '--project-path "12_EXAMPLES/sample_project"' in text
     assert '--auditors "configuration"' in text
-    assert '--output-formats "markdown,json"' in text
+    assert '--output-formats "markdown,json,sarif"' in text
 
 
 def test_smoke_test_uses_runner_temp_and_validates_exit_code() -> None:
@@ -187,12 +191,16 @@ def test_smoke_test_uses_runner_temp_and_validates_exit_code() -> None:
     assert "07_OUTPUTS" not in text
 
 
-def test_smoke_test_validates_both_report_formats() -> None:
+def test_smoke_test_validates_all_report_formats() -> None:
     text = _workflow_text()
     assert '-Filter "*.md"' in text
     assert '-Filter "*.json"' in text
+    assert '-Filter "*.sarif"' in text
     assert "Markdown report" in text
     assert "JSON report" in text
+    assert "SARIF report" in text
+    assert 'version 2.1.0' in text
+    assert 'absolute Windows path' in text
 
 
 def test_workflow_does_not_upload_artifacts_or_enable_cache() -> None:
@@ -224,3 +232,33 @@ def test_workflow_contains_no_secret_references_or_personal_paths() -> None:
     assert "secrets." not in text.casefold()
     assert not re.search(r"(?i)\b[A-Z]:[\\/]", text)
     assert not re.search(r"(?i)users[\\/]", text)
+
+
+def test_quality_job_scopes_minimum_sarif_permissions() -> None:
+    text = _workflow_text()
+    assert re.search(
+        r"(?ms)^  quality:\s*.*?^    permissions:\s*\n"
+        r"      contents:\s+read\s*\n"
+        r"      security-events:\s+write\s*$",
+        text,
+    )
+    assert "write-all" not in text.casefold()
+    assert "contents: write" not in text.casefold()
+
+
+def test_workflow_uploads_sarif_with_official_v4_action() -> None:
+    text = _workflow_text()
+    assert "uses: github/codeql-action/upload-sarif@v4" in text
+    assert "sarif_file: ${{ env.UAAF_SARIF_PATH }}" in text
+    assert re.search(r"(?m)^          category:\s+uaaf\s*$", text)
+
+
+def test_sarif_upload_skips_pull_requests_from_forks() -> None:
+    text = _workflow_text()
+    assert "github.event_name != 'pull_request'" in text
+    assert "github.event.pull_request.head.repo.full_name == github.repository" in text
+    assert "pull_request_target" not in text
+
+
+def test_workflow_does_not_reference_secrets_for_sarif_upload() -> None:
+    assert "secrets." not in _workflow_text().casefold()

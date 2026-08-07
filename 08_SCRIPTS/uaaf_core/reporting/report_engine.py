@@ -1,6 +1,6 @@
 """
 UAAF Report Engine — Fase 2.1
-Genera reportes Markdown y JSON a partir de un AuditResult canónico.
+Genera reportes Markdown, JSON y SARIF a partir de un AuditResult canónico.
 Determinista, sin dependencias externas.
 """
 
@@ -11,6 +11,8 @@ import textwrap
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
+
+from .sarif_exporter import to_sarif as export_sarif
 
 # Import canonical types (best-effort; gracefully degrade to duck typing)
 try:
@@ -68,6 +70,11 @@ class ReportEngine:
         data = self._normalize(result)
         return json.dumps(data, indent=indent, ensure_ascii=False, sort_keys=False)
 
+    def to_sarif(self, result: Any, *, indent: int = 2) -> str:
+        """Return a deterministic SARIF 2.1.0 JSON document."""
+        data = self._normalize(result)
+        return export_sarif(data, indent=indent)
+
     def write_report(
         self,
         result: Any,
@@ -82,7 +89,7 @@ class ReportEngine:
         result:
             ``AuditResult`` instance or canonical dict.
         format:
-            ``"markdown"`` | ``"md"`` | ``"json"``.
+            ``"markdown"`` | ``"md"`` | ``"json"`` | ``"sarif"``.
         output_dir:
             Destination directory. Defaults to ``07_OUTPUTS`` relative to the
             project root inferred from this file's location.
@@ -100,6 +107,8 @@ class ReportEngine:
 
         if fmt == "json":
             content = self.to_json(data)
+        elif fmt == "sarif":
+            content = self.to_sarif(data)
         else:
             content = self.to_markdown(data)
 
@@ -127,9 +136,12 @@ class ReportEngine:
         fmt_lower = fmt.strip().lower()
         if fmt_lower in ("markdown", "md"):
             return "markdown"
-        if fmt_lower == "json":
-            return "json"
-        raise ValueError(f"Unsupported format: {fmt!r}. Use 'markdown' or 'json'.")
+        if fmt_lower in {"json", "sarif"}:
+            return fmt_lower
+        raise ValueError(
+            f"Unsupported format: {fmt!r}. "
+            "Use 'markdown', 'json', or 'sarif'."
+        )
 
     # ------------------------------------------------------------------
     # File naming
@@ -156,7 +168,12 @@ class ReportEngine:
         started_at = execution.get("started_at") or ""
         ts = self._extract_timestamp(started_at)
 
-        ext = "json" if fmt == "json" else "md"
+        extension_by_format = {
+            "markdown": "md",
+            "json": "json",
+            "sarif": "sarif",
+        }
+        ext = extension_by_format[fmt]
         filename = f"{ts}_{plugin_id}_{audit_type}.{ext}"
 
         return out / filename
@@ -400,6 +417,11 @@ def to_json(result: Any, *, indent: int = 2) -> str:
     return _default_engine.to_json(result, indent=indent)
 
 
+def to_sarif(result: Any, *, indent: int = 2) -> str:
+    """Generate a SARIF report (uses the default engine)."""
+    return _default_engine.to_sarif(result, indent=indent)
+
+
 def write_report(
     result: Any,
     format: str,  # noqa: A002
@@ -413,5 +435,6 @@ __all__ = [
     "ReportEngine",
     "to_json",
     "to_markdown",
+    "to_sarif",
     "write_report",
 ]

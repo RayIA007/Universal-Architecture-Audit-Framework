@@ -22,7 +22,9 @@ DEFAULT_AUDITORS: Final[tuple[str, ...]] = ("all",)
 DEFAULT_OUTPUT_FORMATS: Final[tuple[str, ...]] = ("markdown", "json")
 DEFAULT_FAIL_ON: Final[tuple[str, ...]] = ()
 DEFAULT_EXCLUSIONS: Final[tuple[str, ...]] = ()
-VALID_OUTPUT_FORMATS: Final[frozenset[str]] = frozenset(DEFAULT_OUTPUT_FORMATS)
+VALID_OUTPUT_FORMATS: Final[frozenset[str]] = frozenset(
+    {"markdown", "json", "sarif"}
+)
 VALID_SEVERITIES: Final[frozenset[str]] = frozenset(
     {"critical", "error", "warning", "info"}
 )
@@ -565,7 +567,8 @@ def normalize_output_formats(value: Any) -> tuple[str, ...]:
     unknown = sorted(set(normalized) - VALID_OUTPUT_FORMATS)
     if unknown:
         raise ConfigValidationError(
-            f"Unsupported output format(s): {unknown}. Use markdown and/or json."
+            f"Unsupported output format(s): {unknown}. "
+            "Use markdown, json, and/or sarif."
         )
     return tuple(normalized)
 

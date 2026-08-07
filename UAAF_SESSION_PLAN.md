@@ -391,9 +391,9 @@ Extender el Architecture Auditor con análisis estático semántico avanzado, pr
 | 3.1 | Orchestrator / CLI unificado | `orchestrator.py`, `cli.py`, tests | ✅ COMPLETADA         |
 | 3.2 | Plugin Registry dinámico     | `registry.py`, integración y tests | ✅ COMPLETADA |
 | 3.3 | Configuración global         | `config.py`, CLI, Orchestrator, tests | ✅ COMPLETADA         |
-| 3.4 | Integración CI/CD            | GitHub Actions                         | ⏳ SIGUIENTE OBJETIVO |
-| 3.5 | Exportación SARIF            | `sarif_exporter.py`                | ⏳ PENDIENTE          |
-| 3.6 | Documentación pública        | `README.md`, `docs/`               | ⏳ PENDIENTE          |
+| 3.4 | Integración CI/CD            | GitHub Actions                         | ✅ COMPLETADA         |
+| 3.5 | Exportación SARIF            | `sarif_exporter.py`, integración y tests | 🧪 LOCAL OK / REMOTO PENDIENTE |
+| 3.6 | Documentación pública        | `README.md`, `docs/`               | ⏳ SIGUIENTE DESPUÉS DE SARIF |
 
 ---
 
@@ -788,7 +788,7 @@ Todos los criterios de aceptación de la Fase 3.3 fueron validados. La configura
 
 #### Estado
 
-🧪 IMPLEMENTADA Y VALIDADA LOCALMENTE; VALIDACIÓN REMOTA PENDIENTE
+✅ COMPLETADA Y VALIDADA REMOTAMENTE
 
 #### Checklist
 
@@ -799,20 +799,29 @@ Todos los criterios de aceptación de la Fase 3.3 fueron validados. La configura
 * [x] Ejecutar `python run.py --help`.
 * [x] Ejecutar un smoke test controlado de UAAF.
 * [x] Generar y validar Markdown y JSON fuera del repositorio.
-* [x] Declarar `contents: read` y evitar permisos de escritura.
+* [x] Declarar permisos mínimos.
 * [x] Evitar `pull_request_target`, secretos, commits y push automáticos.
 * [x] Crear 37 pruebas contractuales del workflow.
 * [x] Preservar las 713 pruebas anteriores.
 * [x] Validar 750 pruebas totales localmente.
-* [ ] Confirmar una ejecución remota exitosa en GitHub Actions después del push.
+* [x] Confirmar una ejecución remota exitosa.
+
+#### Evidencia remota
+
+```text
+evento: workflow_dispatch
+ejecución: #4
+commit: fb3f72b
+conclusión: success
+```
 
 #### Decisiones de alcance
 
-* No se agregó caché porque existe una sola dependencia de prueba.
-* No se suben artifacts porque el smoke test valida localmente ambos formatos y los reportes no son necesarios para el contrato mínimo actual.
-* No se agregó matriz multiplataforma; Windows es la plataforma canónica validada.
-* No se modificó `pyproject.toml` ni se introdujo empaquetado artificial.
-* No se avanzó a SARIF.
+* No se agregó caché.
+* No se agregó matriz multiplataforma.
+* Windows permanece como plataforma canónica validada.
+* No se modificó `pyproject.toml`.
+* La implementación SARIF se realizó posteriormente en la Sesión 3.5.
 
 ---
 
@@ -820,18 +829,26 @@ Todos los criterios de aceptación de la Fase 3.3 fueron validados. La configura
 
 #### Estado
 
-⏳ SIGUIENTE FASE, CONDICIONADA A VALIDACIÓN REMOTA DE CI
+🧪 IMPLEMENTADA Y VALIDADA LOCALMENTE; VALIDACIÓN REMOTA PENDIENTE
 
-#### Checklist preliminar
+#### Checklist
 
-* [ ] Definir mapeo UAAF–SARIF.
-* [ ] Implementar `sarif_exporter.py`.
-* [ ] Mapear severidades.
-* [ ] Mapear reglas.
-* [ ] Mapear locations.
-* [ ] Agregar `sarif` a `--output-formats`.
-* [ ] Crear tests.
-* [ ] Validar integración con GitHub Code Scanning.
+* [x] Definir mapeo UAAF–SARIF.
+* [x] Implementar `sarif_exporter.py`.
+* [x] Mapear severidades.
+* [x] Mapear reglas.
+* [x] Mapear locations.
+* [x] Agregar `sarif` a `--output-formats`.
+* [x] Preservar `markdown,json` como formatos predeterminados.
+* [x] Integrar SARIF con el Report Engine.
+* [x] Redactar rutas absolutas del proyecto.
+* [x] Cubrir rutas Windows escapadas.
+* [x] Crear pruebas específicas y contractuales.
+* [x] Validar determinismo.
+* [x] Preparar carga mediante `upload-sarif@v4`.
+* [x] Proteger pull requests provenientes de forks.
+* [ ] Validar ejecución remota.
+* [ ] Validar GitHub Code Scanning.
 
 ---
 
@@ -912,28 +929,32 @@ Estas fases no forman parte de la primera versión terminada y deberán planific
 
 ## 9. Próxima sesión activa
 
-**Fase**: validación remota de 3.4 y preparación de 3.5
-**Componente inmediato**: GitHub Actions
-**Estado**: validación local completada; validación remota pendiente
+**Fase**: validación remota de 3.5 y preparación de 3.6
+**Componente inmediato**: GitHub Actions y GitHub Code Scanning
+**Estado**: implementación SARIF validada localmente; validación remota pendiente
 
-### Acción obligatoria antes de SARIF
+### Acción obligatoria antes de documentación pública
 
-1. Realizar el commit y push de la Fase 3.4.
-2. Abrir GitHub Actions.
-3. Revisar el workflow `UAAF CI`.
-4. Confirmar que el job `Windows / Python 3.14.6` termina correctamente.
-5. Registrar el resultado remoto real en `SESSION_CONTEXT.md` y `UAAF_SESSION_PLAN.md`.
+1. Revisar el diff final.
+2. Crear el commit de la Fase 3.5.
+3. Realizar el push a `main`.
+4. Confirmar que `UAAF CI` termina con `success`.
+5. Confirmar que `upload-sarif@v4` carga el archivo.
+6. Verificar resultados reales en GitHub Code Scanning.
+7. Registrar la evidencia remota en ambos documentos.
 
 ### Próxima implementación
 
-Después de esa comprobación, la siguiente sesión técnica será:
+Después de esas comprobaciones, la siguiente sesión técnica será:
 
 ```text
-Fase 3.5 — Exportación SARIF
+Fase 3.6 — Documentación pública
 ```
 
-Debe preservar las 750 pruebas actuales, Markdown, JSON, la configuración global, Registry, RuntimeContext, AuditResult y los códigos de salida `0`, `1` y `2`.
+Debe preservar las 820 pruebas actuales, Markdown, JSON, SARIF, configuración global, Registry, RuntimeContext, AuditResult y los códigos de salida `0`, `1` y `2`.
+
 ---
+
 ## 10. Prompt para iniciar la siguiente sesión
 
 ```text
@@ -941,44 +962,43 @@ ROL: Actúa como Arquitecto Senior de Software e IA, Ingeniero Full Stack especi
 
 Contexto: Estoy continuando el proyecto UAAF — Universal Architecture Audit Framework.
 
-Estado validado localmente:
-- Fase 1 completada.
-- Fase 2 completada.
+Estado validado:
+- Fases 1 y 2 completadas.
 - Fase 3.1 — Orchestrator / CLI unificado completada.
 - Fase 3.2 — Plugin Registry dinámico completada.
 - Fase 3.3 — Configuración global completada.
-- Fase 3.4 — Integración CI/CD implementada y validada localmente.
-- Workflow: .github/workflows/uaaf-ci.yml.
-- Prueba contractual: 09_TESTS/unit/test_ci_workflow.py con 37 pruebas.
-- 750 pruebas totales pasan localmente: 713 anteriores preservadas y 37 nuevas.
-- python run.py --help pasa con exit code 0.
-- Smoke test reducido: 1 auditor, 3 findings, Markdown y JSON, exit code 0.
-- Validación remota de GitHub Actions: confirmar el estado real antes de iniciar cambios SARIF.
+- Fase 3.4 — Integración CI/CD completada y validada remotamente.
+- Evidencia 3.4: workflow_dispatch, ejecución #4, commit fb3f72b, conclusión success.
+- Fase 3.5 — Exportación SARIF implementada y validada localmente.
+- 53 pruebas específicas SARIF.
+- 286 pruebas relacionadas.
+- 820 pruebas totales pasando.
+- Markdown, JSON y SARIF funcionan conjuntamente.
+- Redacción de rutas validada: 0 leaks en mensajes y locations.
+- Determinismo SARIF confirmado.
+- Validación remota de SARIF y GitHub Code Scanning pendiente.
 - UAAFRegistry, ResolvedConfig, UnifiedOrchestrator, RuntimeContext, AuditResult, Report Engine, run.py y los cinco plugins permanecen compatibles.
 
 Lee primero:
 1. SESSION_CONTEXT.md
 2. UAAF_SESSION_PLAN.md
 3. .github/workflows/uaaf-ci.yml
-4. 09_TESTS/unit/test_ci_workflow.py
-5. run.py
-6. 08_SCRIPTS/uaaf_core/config.py
-7. 08_SCRIPTS/uaaf_core/cli.py
-8. 08_SCRIPTS/uaaf_core/orchestrator.py
-9. 08_SCRIPTS/uaaf_core/registry.py
-10. 08_SCRIPTS/uaaf_core/audit/audit_result.py
-11. 08_SCRIPTS/uaaf_core/reporting/report_engine.py
-12. Las pruebas relacionadas con reporting, CLI y Orchestrator
+4. 08_SCRIPTS/uaaf_core/reporting/sarif_exporter.py
+5. 08_SCRIPTS/uaaf_core/reporting/report_engine.py
+6. 09_TESTS/unit/test_sarif_exporter.py
+7. 09_TESTS/unit/test_ci_workflow.py
 
-Condición previa:
-Verifica y documenta el resultado remoto real del workflow UAAF CI. No inventes su estado.
+Objetivo inicial obligatorio:
+Verificar y documentar el resultado remoto real del workflow UAAF CI, del paso upload-sarif@v4 y de GitHub Code Scanning. No inventes su estado.
 
-Objetivo único de ESTA sesión:
-Implementar la Fase 3.5 — Exportación SARIF.
+Objetivo técnico posterior:
+Iniciar la Fase 3.6 — Documentación pública únicamente después de confirmar la validación remota SARIF.
 
-La solución debe definir un exportador SARIF determinista compatible con el contrato real de UAAF, mapear reglas, severidades, mensajes y ubicaciones, integrarse con el Report Engine y la CLI únicamente después de analizar los contratos existentes, preservar Markdown y JSON, conservar los códigos de salida 0, 1 y 2, crear pruebas exhaustivas y mantener las 750 pruebas actuales. No avances a paralelización, caché AST, auditoría incremental, dashboard, API, Docker, despliegues ni auto-remediation.
+Preserva las 820 pruebas actuales, Markdown, JSON, SARIF, configuración global, Registry, RuntimeContext, AuditResult y los códigos de salida 0, 1 y 2. No avances a paralelización, caché AST, auditoría incremental, dashboard, API, Docker, despliegues ni auto-remediation.
 ```
+
 ---
+
 <!-- UAAF_PHASE_3_2_SESSION_PLAN_START -->
 ## Registro de cierre — Fase 3.2
 
@@ -1151,30 +1171,38 @@ Objetivo único: crear una integración de GitHub Actions que ejecute pytest y U
 <!-- UAAF_PHASE_3_3_SESSION_PLAN_END -->
 
 <!-- UAAF_PHASE_3_4_SESSION_PLAN_START -->
-## Registro de implementación y validación local — Fase 3.4
+## Registro de implementación y validación — Fase 3.4
 
 ### Estado
 
-🧪 **IMPLEMENTADA Y VALIDADA LOCALMENTE el 2026-08-06**.
-⏳ **VALIDACIÓN REMOTA PENDIENTE**.
+✅ **IMPLEMENTADA Y VALIDADA LOCALMENTE el 2026-08-06**.
+✅ **VALIDACIÓN REMOTA COMPLETADA CON ÉXITO**.
+
+```text
+evento: workflow_dispatch
+ejecución: #4
+commit: fb3f72b
+conclusión: success
+```
 
 ### Entregables
 
 * [x] `.github/workflows/uaaf-ci.yml`.
 * [x] `09_TESTS/unit/test_ci_workflow.py`.
-* [x] Eventos `push`, `pull_request` y `workflow_dispatch` para `main`.
-* [x] Permisos mínimos `contents: read`.
+* [x] Eventos `push`, `pull_request` y `workflow_dispatch`.
+* [x] Permisos mínimos.
 * [x] Runner `windows-latest`.
 * [x] Python `3.14.6`.
-* [x] `pytest==9.1.1` como única instalación necesaria.
-* [x] Suite completa mediante `python -m pytest -q`.
-* [x] Ayuda de CLI mediante `python run.py --help`.
-* [x] Smoke test controlado con salida en `$env:RUNNER_TEMP`.
-* [x] Validación de reportes Markdown y JSON.
-* [x] Concurrencia y timeout acotado.
-* [x] Sin caché, artifacts, secretos ni escrituras al repositorio.
+* [x] `pytest==9.1.1`.
+* [x] Suite completa.
+* [x] Ayuda de CLI.
+* [x] Smoke test controlado.
+* [x] Markdown y JSON.
+* [x] Concurrencia y timeout de 30 minutos.
+* [x] Sin secretos ni escrituras al repositorio.
+* [x] Ejecución remota exitosa confirmada.
 
-### Resultados reales
+### Resultados locales
 
 ```text
 37 passed in 0.78s
@@ -1182,35 +1210,94 @@ Objetivo único: crear una integración de GitHub Actions que ejecute pytest y U
 750 passed in 14.72s
 ```
 
-Smoke test:
-
-```text
-1 auditor
-3 findings
-1 reporte Markdown
-1 reporte JSON
-exit code 0
-```
-
 ### Compatibilidad
 
 * [x] 713 pruebas anteriores preservadas.
-* [x] 37 pruebas nuevas agregadas.
-* [x] CLI pública preservada.
-* [x] Configuración global preservada.
+* [x] 37 pruebas nuevas.
+* [x] Cero regresiones.
+* [x] CLI y configuración global preservadas.
 * [x] Registry y Orchestrator preservados.
 * [x] RuntimeContext, AuditResult y Report Engine preservados.
 * [x] Cinco plugins preservados.
 * [x] Códigos de salida `0`, `1` y `2` preservados.
 * [x] Sin dependencias productivas nuevas.
-* [x] Sin avance a SARIF.
+
+### Cierre remoto
+
+La ejecución remota `#4` del workflow `UAAF CI` concluyó con `success` sobre el commit `fb3f72b`.
+<!-- UAAF_PHASE_3_4_SESSION_PLAN_END -->
+
+<!-- UAAF_PHASE_3_5_SESSION_PLAN_START -->
+## Registro de implementación y validación local — Fase 3.5
+
+### Estado
+
+✅ **IMPLEMENTADA Y VALIDADA LOCALMENTE el 2026-08-06**.
+⏳ **VALIDACIÓN REMOTA DE SARIF Y GITHUB CODE SCANNING PENDIENTE**.
+
+### Entregables
+
+* [x] `08_SCRIPTS/uaaf_core/reporting/sarif_exporter.py`.
+* [x] `09_TESTS/unit/test_sarif_exporter.py`.
+* [x] Integración opt-in con CLI, configuración global y Report Engine.
+* [x] SARIF `2.1.0` con schema oficial Errata 01.
+* [x] Reglas deduplicadas y ordenadas.
+* [x] Severidades UAAF mapeadas a niveles SARIF.
+* [x] Locations relativas y POSIX.
+* [x] Redacción de rutas absolutas.
+* [x] Compatibilidad con rutas Windows escapadas.
+* [x] Markdown y JSON preservados.
+* [x] Códigos de salida `0`, `1` y `2` preservados.
+* [x] Workflow preparado con `github/codeql-action/upload-sarif@v4`.
+* [x] Permiso acotado `security-events: write`.
+* [x] Protección para pull requests de forks.
+* [x] Pruebas específicas, contractuales y de integración.
+* [x] Determinismo validado.
+* [ ] Confirmar ejecución remota exitosa.
+* [ ] Confirmar resultados en GitHub Code Scanning.
+
+### Resultados reales
+
+```text
+53 passed in 0.50s
+286 passed in 3.13s
+820 passed in 10.77s
+```
+
+### Validación SARIF
+
+```text
+1 auditor
+3 findings
+1 archivo SARIF
+MessagePathLeaks: 0
+LocationPathLeaks: 0
+Identical: True
+```
+
+SHA-256 determinista:
+
+```text
+26B549B9F432F71B22B89E2267338D361622A2410000E1B88A73D1B02849291B
+```
+
+### Compatibilidad
+
+* [x] 750 pruebas anteriores preservadas.
+* [x] 70 pruebas nuevas.
+* [x] Cero regresiones.
+* [x] CLI pública preservada.
+* [x] Configuración global preservada.
+* [x] Registry y Orchestrator preservados.
+* [x] RuntimeContext y AuditResult preservados.
+* [x] Cinco plugins preservados.
+* [x] Sin dependencias productivas nuevas.
 
 ### Cierre pendiente
 
-Después del push debe observarse el resultado real en GitHub Actions. Hasta entonces, el estado canónico es:
-
 ```text
-validación local completada
-validación remota pendiente
+implementación local completada
+validación remota SARIF pendiente
+Code Scanning pendiente
 ```
-<!-- UAAF_PHASE_3_4_SESSION_PLAN_END -->
+<!-- UAAF_PHASE_3_5_SESSION_PLAN_END -->
