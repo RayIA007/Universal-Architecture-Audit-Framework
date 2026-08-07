@@ -190,6 +190,9 @@ class SarifExporter:
             uri = self._artifact_uri(str(finding["path"]), project_root)
             line = self._valid_line(details)
 
+            if uri is None:
+                continue
+
             sarif_result: dict[str, Any] = {
                 "ruleId": code,
                 "ruleIndex": rule_indexes[code],

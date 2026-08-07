@@ -294,10 +294,8 @@ def test_windows_absolute_path_inside_project_becomes_relative(exporter: SarifEx
 
 def test_windows_absolute_path_outside_project_is_omitted(exporter: SarifExporter) -> None:
     finding = _finding(path=r"C:\Users\Raymundo\secret.py")
-    result = exporter.to_dict(_result(finding))["runs"][0]["results"][0]
-    assert "locations" not in result
-    assert "Raymundo" not in json.dumps(result)
-    assert "C:" not in json.dumps(result)
+    results = exporter.to_dict(_result(finding))["runs"][0]["results"]
+    assert results == []
 
 
 def test_posix_absolute_path_inside_project_becomes_relative(exporter: SarifExporter) -> None:
@@ -311,10 +309,10 @@ def test_posix_absolute_path_inside_project_becomes_relative(exporter: SarifExpo
 
 def test_posix_absolute_path_outside_project_is_omitted(exporter: SarifExporter) -> None:
     finding = _finding(path="/etc/shadow")
-    result = exporter.to_dict(
+    results = exporter.to_dict(
         _result(finding, project_path="/workspace/project")
-    )["runs"][0]["results"][0]
-    assert "locations" not in result
+    )["runs"][0]["results"]
+    assert results == []
 
 
 @pytest.mark.parametrize("path", ["../outside.py", "..", ".", "C:relative.py"])
@@ -322,8 +320,8 @@ def test_unsafe_relative_paths_are_omitted(
     exporter: SarifExporter,
     path: str,
 ) -> None:
-    result = exporter.to_dict(_result(_finding(path=path)))["runs"][0]["results"][0]
-    assert "locations" not in result
+    results = exporter.to_dict(_result(_finding(path=path)))["runs"][0]["results"]
+    assert results == []
 
 
 def test_spaces_and_unicode_are_preserved_in_relative_path(exporter: SarifExporter) -> None:
@@ -349,12 +347,11 @@ def test_invalid_line_is_omitted(
     assert "region" not in physical
 
 
-def test_finding_without_exportable_location_remains_exported(exporter: SarifExporter) -> None:
-    result = exporter.to_dict(
+def test_finding_without_exportable_location_is_omitted_from_sarif(exporter: SarifExporter) -> None:
+    results = exporter.to_dict(
         _result(_finding(path=r"D:\outside\file.py"))
-    )["runs"][0]["results"][0]
-    assert result["ruleId"] == "ARCH-COMPLEX-001"
-    assert "locations" not in result
+    )["runs"][0]["results"]
+    assert results == []
 
 
 def test_results_are_canonically_sorted(exporter: SarifExporter) -> None:
