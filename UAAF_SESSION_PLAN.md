@@ -393,7 +393,7 @@ Extender el Architecture Auditor con análisis estático semántico avanzado, pr
 | 3.3 | Configuración global         | `config.py`, CLI, Orchestrator, tests | ✅ COMPLETADA         |
 | 3.4 | Integración CI/CD            | GitHub Actions                         | ✅ COMPLETADA         |
 | 3.5 | Exportación SARIF            | `sarif_exporter.py`, integración y tests | ✅ COMPLETADA / REMOTO OK |
-| 3.6 | Documentación pública        | `README.md`, `docs/`               | ▶️ SIGUIENTE FASE |
+| 3.6 | Documentación pública        | `README.md`, `docs/`               | ✅ COMPLETADA / REMOTO OK |
 
 ---
 
@@ -856,21 +856,29 @@ conclusión: success
 
 #### Estado
 
-▶️ SIGUIENTE FASE
+✅ COMPLETADA Y VALIDADA REMOTAMENTE
 
-#### Checklist preliminar
+#### Checklist final
 
-* [ ] Actualizar `README.md`.
-* [ ] Documentar instalación.
-* [ ] Documentar CLI.
-* [ ] Documentar plugins.
-* [ ] Documentar configuración.
-* [ ] Documentar severidades.
-* [ ] Documentar códigos de salida.
-* [ ] Agregar ejemplos.
-* [ ] Agregar arquitectura.
-* [ ] Agregar contribución.
-* [ ] Agregar troubleshooting.
+* [x] Actualizar `README.md`.
+* [x] Documentar instalación.
+* [x] Documentar CLI.
+* [x] Documentar plugins.
+* [x] Documentar configuración.
+* [x] Documentar severidades.
+* [x] Documentar códigos de salida.
+* [x] Agregar ejemplos.
+* [x] Agregar arquitectura.
+* [x] Agregar contribución.
+* [x] Agregar troubleshooting.
+* [x] Agregar documentación de reporting Markdown/JSON/SARIF.
+* [x] Documentar GitHub Actions y Code Scanning.
+* [x] Validar `python run.py --help`.
+* [x] Validar `git diff --check`.
+* [x] Validar suite completa: `820 passed in 22.52s`.
+* [x] Commit público: `914ece3`.
+* [x] Validación remota: UAAF CI #8, `success`.
+* [x] Preservar contratos y comportamiento funcional.
 
 ---
 
@@ -929,37 +937,39 @@ Estas fases no forman parte de la primera versión terminada y deberán planific
 
 ## 9. Próxima sesión activa
 
-**Fase**: 3.6 — Documentación pública
-**Componente inmediato**: `README.md` y `docs/`
-**Estado**: lista para iniciar; Fase 3.5 cerrada y validada remotamente
+**Objetivo**: transición documental posterior al cierre de la Fase 3.6
+**Componente inmediato**: `SESSION_CONTEXT.md`, `UAAF_SESSION_PLAN.md` y documentación permanente relacionada
+**Estado**: Fases 1, 2 y 3 completadas; Fase 3.6 validada local y remotamente
 
-### Evidencia que habilita la Fase 3.6
+### Evidencia de cierre de la Fase 3.6
 
 ```text
-Fase 3.5 local: 820 passed
-primer intento remoto: run #5, commit 77865f5, failure
-commit correctivo: 6242472
-validación remota final: run #6, success
-Upload SARIF to GitHub Code Scanning: success
-Post Upload SARIF to GitHub Code Scanning: success
+suite local: 820 passed in 22.52s
+commit: 914ece3
+workflow: UAAF CI #8
+branch: main
+conclusion: success
 ```
 
 ### Próxima implementación
 
-La siguiente sesión técnica será:
+La siguiente sesión no debe abrir todavía una nueva fase funcional. Debe:
 
-```text
-Fase 3.6 — Documentación pública
-```
+1. Identificar información permanente y vigente dentro de `SESSION_CONTEXT.md` y `UAAF_SESSION_PLAN.md`.
+2. Migrar esa información hacia documentación definitiva/pública donde corresponda.
+3. Completar documentación arquitectónica actualmente vacía o histórica solo cuando la información sea canónica y útil.
+4. Mantener `00_DOCUMENTATION/` en su estructura actual salvo necesidad técnica real.
+5. Retirar `SESSION_CONTEXT.md` y `UAAF_SESSION_PLAN.md` una vez preservada su información válida.
+6. Confirmar tests, diff, commit, push y árbol limpio.
+7. Después, iniciar una revisión específica de la documentación arquitectónica histórica para separar el Patch Engine de UAAF como proyecto independiente.
 
-Debe preservar las 820 pruebas actuales, Markdown, JSON, SARIF, configuración global, Registry, RuntimeContext, AuditResult y los códigos de salida `0`, `1` y `2`.
+No realizar cambios funcionales durante esta transición documental.
 
 ---
-
 ## 10. Prompt para iniciar la siguiente sesión
 
 ```text
-ROL: Actúa como Arquitecto Senior de Software e IA, Ingeniero Full Stack especialista en Python, documentación técnica, GitHub Actions, SARIF 2.1.0, análisis estático, sistemas de plugins, Prompt Engineer, Context Engineer y Agent Engineer.
+ROL: Actúa como Arquitecto Senior de Software e IA, Arquitecto de Documentación Técnica, Ingeniero Python, especialista en arquitectura de repositorios, mantenimiento documental, Git/GitHub, Prompt Engineer, Context Engineer y Agent Engineer.
 
 Contexto: Estoy continuando el proyecto UAAF — Universal Architecture Audit Framework.
 
@@ -969,39 +979,27 @@ Estado validado:
 - Fase 3.2 — Plugin Registry dinámico completada.
 - Fase 3.3 — Configuración global completada.
 - Fase 3.4 — Integración CI/CD completada y validada remotamente.
-- Evidencia 3.4: workflow_dispatch, ejecución #4, commit fb3f72b, conclusión success.
-- Fase 3.5 — Exportación SARIF COMPLETADA Y VALIDADA REMOTAMENTE.
-- 53 pruebas específicas SARIF.
-- 286 pruebas relacionadas de la validación inicial.
-- 820 pruebas totales pasando después del hotfix.
-- Markdown, JSON y SARIF funcionan conjuntamente.
-- Redacción de rutas validada: 0 leaks en mensajes y locations.
-- Determinismo SARIF confirmado.
-- Primer intento remoto de 3.5: ejecución #5 sobre 77865f5, conclusion failure porque GitHub Code Scanning rechazó resultados SARIF sin locations.
-- Corrección: commit 6242472; los findings sin ubicación exportable se conservan en el resultado canónico y Markdown/JSON, pero se omiten de results[] SARIF.
-- Validación remota final de 3.5: ejecución #6 sobre 62424728d1609233d933207e1a58747153f304bc, conclusion success.
-- Upload SARIF to GitHub Code Scanning: success.
-- Post Upload SARIF to GitHub Code Scanning: success.
-- UAAFRegistry, ResolvedConfig, UnifiedOrchestrator, RuntimeContext, AuditResult, Report Engine, run.py y los cinco plugins permanecen compatibles.
-
-Lee primero:
-1. SESSION_CONTEXT.md
-2. UAAF_SESSION_PLAN.md
-3. README.md
-4. .github/workflows/uaaf-ci.yml
-5. 08_SCRIPTS/uaaf_core/cli.py
-6. 08_SCRIPTS/uaaf_core/config.py
-7. 08_SCRIPTS/uaaf_core/orchestrator.py
-8. 08_SCRIPTS/uaaf_core/registry.py
-9. 08_SCRIPTS/uaaf_core/reporting/report_engine.py
-10. 08_SCRIPTS/uaaf_core/reporting/sarif_exporter.py
+- Fase 3.5 — Exportación SARIF completada y validada remotamente.
+- Fase 3.6 — Documentación pública completada y validada remotamente.
+- Suite local al cierre de 3.6: 820 passed in 22.52s.
+- Commit de documentación pública: 914ece3.
+- Workflow remoto: UAAF CI #8, conclusion success.
+- README.md y docs/ contienen la documentación pública actual.
+- No hubo cambios funcionales en la Fase 3.6.
 
 Objetivo único de ESTA sesión:
-Implementar la Fase 3.6 — Documentación pública.
+Consolidar la documentación permanente posterior a la Fase 3.6 y retirar SESSION_CONTEXT.md y UAAF_SESSION_PLAN.md de forma segura.
 
-La documentación debe reflejar únicamente el comportamiento real y validado del repositorio. Actualiza README.md y la documentación necesaria en docs/ para cubrir, como mínimo: propósito y arquitectura de UAAF, requisitos e instalación, uso de la CLI, configuración global y precedencia, plugins disponibles, reporting Markdown/JSON/SARIF, severidades, códigos de salida, CI/CD y Code Scanning, ejemplos reproducibles, troubleshooting y contribución.
-
-Preserva las 820 pruebas actuales y todos los contratos públicos. No avances a paralelización, caché AST, auditoría incremental, dashboard, API, Docker, despliegues ni auto-remediation.
+Reglas:
+1. Antes de borrar los dos archivos de sesión, identifica toda información permanente, arquitectónica, operativa o histórica que todavía sea útil.
+2. Migra únicamente la información vigente y canónica a documentación definitiva/pública.
+3. Usa los archivos existentes de 00_DOCUMENTATION/ cuando corresponda, incluidos documentos arquitectónicos vacíos o incompletos, pero no reorganices 00_DOCUMENTATION/ por razones cosméticas.
+4. No conviertas documentación histórica o aspiracional en arquitectura actual sin verificarla contra el código.
+5. No modifiques runtime, plugins, CLI, configuración, reporting, SARIF, workflow ni tests salvo que sea estrictamente necesario para corregir una referencia documental rota.
+6. Preserva los 820 tests y los contratos públicos existentes.
+7. Después de migrar la información válida, elimina SESSION_CONTEXT.md y UAAF_SESSION_PLAN.md.
+8. Ejecuta validación documental, python -m pytest -q, git diff --check, commit enfocado, push y validación remota.
+9. Solo después de cerrar esta transición documental, inicia una sesión independiente para revisar la arquitectura histórica y separar el Patch Engine de UAAF como proyecto independiente.
 ```
 
 ---
@@ -1350,3 +1348,52 @@ Fase 3.5: COMPLETADA Y VALIDADA REMOTAMENTE
 siguiente fase: 3.6 — Documentación pública
 ```
 <!-- UAAF_PHASE_3_5_SESSION_PLAN_END -->
+
+<!-- UAAF_PHASE_3_6_SESSION_PLAN_START -->
+## Registro de implementación y validación final — Fase 3.6
+
+### Estado
+
+✅ **IMPLEMENTADA Y VALIDADA LOCALMENTE el 2026-08-08**.
+✅ **VALIDADA REMOTAMENTE Y CERRADA el 2026-08-08**.
+✅ **FASE 3 COMPLETADA**.
+
+### Entregables
+
+* [x] `README.md`.
+* [x] `docs/architecture.md`.
+* [x] `docs/cli-and-configuration.md`.
+* [x] `docs/development.md`.
+* [x] `docs/plugins.md`.
+* [x] `docs/reporting-and-sarif.md`.
+* [x] Arquitectura, requisitos, instalación y quick start.
+* [x] CLI, configuración y precedencia.
+* [x] Cinco plugins.
+* [x] Severidades y códigos de salida.
+* [x] Markdown, JSON y SARIF.
+* [x] GitHub Actions y Code Scanning.
+* [x] Ejemplos, desarrollo, contribución y troubleshooting.
+* [x] Cero cambios funcionales intencionales.
+
+### Validación
+
+```text
+python run.py --help: OK
+git diff --check: OK
+suite completa: 820 passed in 22.52s
+commit: 914ece3
+workflow: UAAF CI #8
+conclusion: success
+```
+
+### Continuidad
+
+```text
+Fase 3.6: COMPLETADA Y VALIDADA REMOTAMENTE
+roadmap principal Fases 1–3: COMPLETADO
+siguiente trabajo: transición documental post-3.6
+```
+
+La transición siguiente debe migrar la información permanente de los dos archivos de sesión y retirarlos de forma segura antes de la revisión arquitectónica histórica y la separación del Patch Engine.
+
+<!-- UAAF_PHASE_3_6_SESSION_PLAN_END -->

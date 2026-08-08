@@ -2,10 +2,11 @@
 
 ## 1. Estado actual del proyecto
 
-> Última actualización: 2026-08-07
-> Última fase completada y validada remotamente: Fase 3.5 — Exportación SARIF
-> Validación remota de la Fase 3.5: completada con éxito
-> Próxima fase: Fase 3.6 — Documentación pública
+> Última actualización: 2026-08-08
+> Última fase completada y validada remotamente: Fase 3.6 — Documentación pública
+> Validación remota de la Fase 3.6: UAAF CI #8, commit `914ece3`, conclusión `success`
+> Estado del roadmap principal: Fases 1, 2 y 3 completadas
+> Próximo objetivo administrativo: consolidar la documentación permanente y retirar `SESSION_CONTEXT.md` y `UAAF_SESSION_PLAN.md` antes de la revisión arquitectónica histórica y la separación del Patch Engine
 
 ---
 
@@ -52,14 +53,14 @@ La primera fase estableció el contrato principal de auditoría arquitectónica 
 * Findings `ARCH-COMPLEX-001` y `ARCH-DEAD-001`.
 * Compatibilidad preservada con las Suites A–F.
 
-### 🚧 FASE 3 EN CURSO — Consolidación y CLI
+### ✅ FASE 3 COMPLETADA — Consolidación, CLI, CI/CD, SARIF y documentación pública
 
 * ✅ **3.1 Orchestrator / CLI unificado — COMPLETADA**.
 * **3.2 Plugin Registry dinámico — ✅ COMPLETADA**.
 * **3.3 Configuración global — ✅ COMPLETADA**.
 * ✅ **3.4 Integración CI/CD — COMPLETADA Y VALIDADA REMOTAMENTE**.
 * ✅ **3.5 Exportación SARIF — COMPLETADA Y VALIDADA REMOTAMENTE**.
-* ▶️ **3.6 Documentación pública — SIGUIENTE FASE**.
+* ✅ **3.6 Documentación pública — COMPLETADA Y VALIDADA REMOTAMENTE**.
 
 ### Validación acumulada
 
@@ -67,6 +68,7 @@ La primera fase estableció el contrato principal de auditoría arquitectónica 
 * **750 pruebas anteriores preservadas y 70 pruebas nuevas agregadas en la Fase 3.5**.
 * **Fase 3.4 validada remotamente mediante `workflow_dispatch`: ejecución #4, commit `fb3f72b`, conclusión `success`**.
 * **Fase 3.5 validada remotamente: ejecución #6, commit `62424728d1609233d933207e1a58747153f304bc`, conclusión `success`; los pasos `Upload SARIF to GitHub Code Scanning` y `Post Upload SARIF to GitHub Code Scanning` finalizaron en `success`**.
+* **Fase 3.6 validada localmente con `820 passed in 22.52s` y remotamente mediante UAAF CI #8 sobre el commit `914ece3`, conclusión `success`**.
 * Plataforma validada:
 
   * Windows.
@@ -119,6 +121,12 @@ La primera fase estableció el contrato principal de auditoría arquitectónica 
 | `09_TESTS/unit/test_orchestrator.py`                 |         — | Pruebas deterministas del Orchestrator                          |
 | `09_TESTS/unit/test_cli.py`                          |         — | Pruebas deterministas de la CLI                                 |
 | `.github/workflows/uaaf-ci.yml`                      |     1.1.0 | CI seguro y carga SARIF hacia GitHub Code Scanning              |
+| `README.md`                                           |         — | Documentación pública principal, quick start y referencia        |
+| `docs/architecture.md`                                |         — | Arquitectura pública del runtime canónico                        |
+| `docs/cli-and-configuration.md`                       |         — | Referencia pública de CLI y configuración                        |
+| `docs/plugins.md`                                     |         — | Referencia de los cinco plugins disponibles                      |
+| `docs/reporting-and-sarif.md`                         |         — | Reporting Markdown/JSON/SARIF y Code Scanning                    |
+| `docs/development.md`                                 |         — | Desarrollo, testing, CI, contribución y troubleshooting          |
 | `09_TESTS/unit/test_ci_workflow.py`                  |         — | Pruebas contractuales de CI/CD y carga SARIF                    |
 
 ---
@@ -581,41 +589,58 @@ Estas exclusiones no eliminan la deuda técnica. Únicamente permiten diferencia
 | 3.3 | Configuración global         | `config.py`, CLI, Orchestrator, tests | ✅ COMPLETADA         |
 | 3.4 | Integración CI/CD            | `.github/workflows/uaaf-ci.yml`, tests | ✅ COMPLETADA / REMOTO OK |
 | 3.5 | Exportación SARIF            | `sarif_exporter.py`, integración y tests | ✅ COMPLETADA / REMOTO OK |
-| 3.6 | Documentación pública        | `README.md`, `docs/`               | ▶️ SIGUIENTE FASE |
+| 3.6 | Documentación pública        | `README.md`, `docs/`               | ✅ COMPLETADA / REMOTO OK |
 
 ---
 
-## 9. Próxima fase — Fase 3.6
+## 9. Cierre de la Fase 3.6 — Documentación pública
 
-### Estado actual
+### Estado final
 
-La Fase 3.5 — Exportación SARIF está completada y validada tanto local como remotamente.
+La Fase 3.6 quedó completada sin cambios funcionales en el runtime de UAAF.
 
-La primera ejecución remota de la Fase 3.5 detectó una incompatibilidad real con GitHub Code Scanning: algunos findings sin una ubicación exportable producían resultados SARIF sin `locations`. GitHub rechazó esa carga en la ejecución #5.
-
-La corrección conserva los findings en el resultado canónico de UAAF y en Markdown/JSON, pero omite de `results[]` SARIF aquellos findings para los que no existe una ubicación exportable segura. No se inventan rutas, columnas, rangos ni fingerprints.
+Entregables públicos incorporados:
 
 ```text
-Fase 3.5 local: 820 passed
-primer intento remoto: run #5, commit 77865f5, failure
-causa: Code Scanning rechazó resultados SARIF sin locations
-commit correctivo: 6242472
-commit correctivo completo: 62424728d1609233d933207e1a58747153f304bc
-validación remota final: run #6, success
-Upload SARIF to GitHub Code Scanning: success
-Post Upload SARIF to GitHub Code Scanning: success
+README.md
+docs/architecture.md
+docs/cli-and-configuration.md
+docs/development.md
+docs/plugins.md
+docs/reporting-and-sarif.md
 ```
 
-### Objetivo siguiente
+Validación final:
 
-Iniciar la Fase 3.6 — Documentación pública, actualizando `README.md` y `docs/` para reflejar la arquitectura, instalación, CLI, configuración, plugins, severidades, códigos de salida, ejemplos, SARIF, CI/CD y troubleshooting del estado real del proyecto.
+```text
+suite completa local: 820 passed in 22.52s
+commit de documentación pública: 914ece3
+workflow remoto: UAAF CI #8
+branch: main
+conclusion: success
+```
+
+La documentación pública refleja el comportamiento real y validado de UAAF: arquitectura canónica, requisitos, uso de la CLI, configuración global y precedencia, cinco plugins, severidades, códigos de salida, reporting Markdown/JSON/SARIF, GitHub Actions, Code Scanning, ejemplos, desarrollo, contribución, limitaciones y troubleshooting.
+
+### Estado del roadmap principal
+
+Con el cierre de 3.6 quedan completadas las Fases 1, 2 y 3 del roadmap principal actual. No se adelantan las fases futuras de performance, multi-lenguaje, Cloud/SaaS ni auto-remediation.
+
+### Próximo objetivo administrativo
+
+Antes de iniciar una nueva fase funcional:
+
+1. Revisar `SESSION_CONTEXT.md` y `UAAF_SESSION_PLAN.md`.
+2. Migrar únicamente la información permanente y vigente hacia documentación definitiva/pública, incluidos los archivos arquitectónicos existentes cuando corresponda.
+3. Retirar `SESSION_CONTEXT.md` y `UAAF_SESSION_PLAN.md` cuando su información útil ya esté preservada.
+4. Mantener `00_DOCUMENTATION/` en su ubicación y estructura salvo necesidad técnica real.
+5. Después de esa consolidación, revisar la documentación arquitectónica histórica y separar el Patch Engine de UAAF como proyecto independiente.
 
 ### Restricción
 
-Preservar los 820 tests actuales, los contratos públicos existentes, los formatos Markdown/JSON/SARIF, la configuración global, Registry, UnifiedOrchestrator, RuntimeContext, AuditResult y los códigos de salida `0`, `1` y `2`.
+La transición documental posterior a 3.6 no debe modificar contratos públicos, runtime, plugins, reporting, configuración, workflow, tests ni comportamiento funcional de UAAF.
 
 ---
-
 ## 10. Comandos de validación
 
 ### Pruebas específicas SARIF
@@ -642,10 +667,10 @@ Resultado final:
 python -m pytest -q
 ```
 
-Resultado local validado en la Fase 3.5:
+Resultado local validado al cierre de la Fase 3.6:
 
 ```text
-820 passed in 10.77s
+820 passed in 22.52s
 ```
 
 ### Ayuda de la CLI
@@ -1208,3 +1233,47 @@ La siguiente fase es:
 Fase 3.6 — Documentación pública
 ```
 <!-- UAAF_PHASE_3_5_SESSION_CONTEXT_END -->
+
+<!-- UAAF_PHASE_3_6_SESSION_CONTEXT_START -->
+## Cierre validado de la Fase 3.6 — Documentación pública
+
+### Estado
+
+* ✅ **IMPLEMENTADA Y VALIDADA LOCALMENTE el 2026-08-08**.
+* ✅ **VALIDADA REMOTAMENTE Y CERRADA el 2026-08-08**.
+* ✅ **FASE 3 COMPLETADA**.
+
+### Entregables
+
+* [x] `README.md`.
+* [x] `docs/architecture.md`.
+* [x] `docs/cli-and-configuration.md`.
+* [x] `docs/development.md`.
+* [x] `docs/plugins.md`.
+* [x] `docs/reporting-and-sarif.md`.
+* [x] Documentación de instalación y quick start.
+* [x] Referencia completa de CLI y configuración.
+* [x] Documentación de los cinco plugins.
+* [x] Severidades y códigos de salida.
+* [x] Reporting Markdown, JSON y SARIF.
+* [x] GitHub Actions y Code Scanning.
+* [x] Arquitectura pública.
+* [x] Ejemplos reproducibles.
+* [x] Desarrollo, contribución, limitaciones y troubleshooting.
+* [x] Sin cambios funcionales en el runtime.
+
+### Evidencia
+
+```text
+validación local: 820 passed in 22.52s
+commit: 914ece3
+push: main
+workflow: UAAF CI #8
+conclusion: success
+```
+
+### Continuidad posterior a la Fase 3.6
+
+El siguiente trabajo no constituye todavía una nueva fase funcional. Debe consolidar la información permanente de `SESSION_CONTEXT.md` y `UAAF_SESSION_PLAN.md` dentro de la documentación definitiva y retirar ambos archivos cuando dejen de ser necesarios. Después corresponde revisar la documentación arquitectónica histórica y planificar la separación del Patch Engine de UAAF como proyecto independiente.
+
+<!-- UAAF_PHASE_3_6_SESSION_CONTEXT_END -->
