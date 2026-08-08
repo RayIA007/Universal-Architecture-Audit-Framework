@@ -12,7 +12,7 @@ Current validated project baseline:
 
 - Five auditor plugins are available.
 - Architecture Auditor version: `1.6.0`.
-- Recorded full-suite baseline before Phase 3.6 documentation work: `820 passed`.
+- Current validated full-suite baseline: `820 passed`.
 - Validated platform: Windows.
 - Validated Python version: `3.14.6`.
 - Validated pytest version: `9.1.1`.
@@ -61,7 +61,7 @@ ReportEngine
 
 The CLI collects public arguments. `ResolvedConfig` applies deterministic configuration precedence. `UnifiedOrchestrator` discovers and selects plugins through `UAAFRegistry`, executes them, consolidates their canonical `AuditResult` data, and asks `ReportEngine` to write the requested output formats.
 
-See [Architecture](docs/architecture.md).
+See [Architecture](docs/architecture.md). Permanent governance, architecture, methodology, and planning records are maintained under [`00_DOCUMENTATION/`](00_DOCUMENTATION/).
 
 ## Requirements
 
@@ -411,13 +411,13 @@ Run the complete suite:
 python -m pytest -q
 ```
 
-Recorded baseline before Phase 3.6 documentation work:
+Current validated full-suite baseline:
 
 ```text
 820 passed
 ```
 
-After documentation changes, the full suite should still pass before the phase is closed.
+Documentation-only changes must preserve this baseline before they are committed.
 
 ## Project structure
 

@@ -1,173 +1,145 @@
 # UAAF Document Hierarchy
-**Universal Architecture Audit Framework v1.0**
+**Universal Architecture Audit Framework (UAAF)**
 
-**Document ID:** UAAF-GOV-001  
-**Version:** 1.0  
-**Status:** Approved  
+**Document ID:** UAAF-GOV-001
+**Version:** 1.1
+**Status:** Maintained
 **Classification:** Governance Standard
+**Owner:** Architecture
 
 ---
 
-# 1. Purpose
+## 1. Purpose
 
-This document defines the official documentation hierarchy of the Universal Architecture Audit Framework (UAAF).
+This document defines the official documentation hierarchy, ownership requirements, conflict rules, and lifecycle for UAAF documents.
 
-Its purpose is to establish the authority, responsibility and dependency rules for every official document within the framework.
+## 2. Documentation Principles
 
----
+- One document, one primary responsibility.
+- No unnecessary duplicated normative text.
+- Higher-authority documents govern lower-authority documents.
+- Lower-authority documents shall not contradict higher-authority documents.
+- Every official document shall have an identifiable owner and purpose.
+- Current-state documentation shall clearly distinguish implemented behavior from roadmap or historical material.
 
-# 2. Documentation Principles
-
-The UAAF documentation shall follow these principles:
-
-- One document, one responsibility.
-- No duplicated information.
-- Higher-level documents govern lower-level documents.
-- Lower-level documents shall never contradict higher-level documents.
-- Every document shall have an identifiable owner and purpose.
-
----
-
-# 3. Authority Levels
+## 3. Authority Levels
 
 | Level | Document Type | Purpose |
-|--------|---------------|---------|
-| 0 | Constitution | Defines the permanent identity and principles of UAAF. |
-| 1 | Governance | Defines governance rules and documentation policies. |
-| 2 | Architecture | Defines the structure and organization of the framework. |
-| 3 | Standards | Defines mandatory engineering rules. |
-| 4 | Specifications | Defines functional and technical contracts. |
-| 5 | Methodologies | Defines repeatable audit processes. |
-| 6 | Schemas | Defines data structures and validation models. |
-| 7 | Profiles | Defines project-specific audit configurations. |
-| 8 | Rule Packs | Defines auditable rules. |
-| 9 | Templates | Defines reusable document formats. |
+|---:|---|---|
+| 0 | Constitution | Permanent identity and principles |
+| 1 | Governance | Governance rules and documentation policy |
+| 2 | Architecture | Structural organization and runtime relationships |
+| 3 | Standards | Mandatory engineering/documentation rules |
+| 4 | Specifications | Functional and technical contracts |
+| 5 | Methodologies | Repeatable audit processes |
+| 6 | Schemas | Data validation structures |
+| 7 | Profiles | Project-specific audit configuration |
+| 8 | Rule Packs | Auditable criteria |
+| 9 | Templates | Reusable formats |
+| 10 | Planning / Roadmap | Planned work, acceptance criteria, and historical milestones |
+| 11 | Public Guides | User-facing operational documentation |
 
----
+Planning and public guides cannot override contracts, standards, architecture, governance, or the Constitution.
 
-# 4. Dependency Rules
+## 4. Dependency Rules
 
-Documents may only depend on documents at the same level or higher.
+Documents may depend on documents at the same level or a higher-authority level.
 
-Dependencies shall never create circular references.
+References should point to the authoritative source instead of duplicating large blocks of normative content.
 
----
+Circular normative dependencies are prohibited.
 
-# 5. Conflict Resolution
+## 5. Conflict Resolution
 
-When two documents conflict, the document with the highest authority prevails.
+When two documents conflict:
 
-If documents share the same authority level, the conflict shall be resolved through governance review.
+1. the higher-authority document prevails;
+2. if both have the same authority, architectural/governance review resolves the conflict;
+3. if descriptive documentation conflicts with implemented behavior, the discrepancy must be corrected before the documentation can be treated as current-state documentation.
 
----
-
-# 6. Document Ownership
+## 6. Document Ownership
 
 Every official document shall define:
 
-- Document ID
-- Version
-- Status
-- Classification
-- Owner
+- Document ID;
+- Version;
+- Status;
+- Classification;
+- Owner.
 
-No anonymous documents are permitted.
+No anonymous official documents are permitted.
 
----
-
-# 7. Version Control
+## 7. Version Control
 
 Every revision shall:
 
-- Preserve document history.
-- Maintain version numbering.
-- Record architectural changes.
-- Preserve backward traceability.
+- increment the document version when normative or structural meaning changes;
+- preserve history through Git;
+- record major architectural changes in `CHANGELOG.md`;
+- preserve backward traceability to superseded decisions where useful.
 
----
+## 8. Traceability
 
-# 8. Traceability
+Each official document shall identify its governing context or reference the documents that govern it.
 
-Each document shall explicitly reference its governing documents.
+Code-level behavior should be referenced by canonical module or contract names when implementation detail is necessary.
 
-Traceability shall be maintained throughout the entire framework.
+## 9. Document Lifecycle
 
----
-
-# 9. Document Lifecycle
-
-Every official document shall follow the same lifecycle:
-
+```text
 Draft
-
-↓
-
+  ↓
 Review
-
-↓
-
+  ↓
 Approved
-
-↓
-
-Implemented (if applicable)
-
-↓
-
+  ↓
+Implemented (when applicable)
+  ↓
 Maintained
-
-↓
-
+  ↓
 Deprecated (optional)
-
-↓
-
+  ↓
 Archived (optional)
+```
 
----
+## 10. Naming Convention
 
-# 10. Naming Convention
+Official document identifiers use:
 
-Official documents shall use the following identifier format:
-
+```text
 UAAF-[TYPE]-[NUMBER]
+```
 
-Examples:
+Current type families include:
 
-- UAAF-CON-001
-- UAAF-GOV-001
-- UAAF-ARC-001
-- UAAF-STD-001
-- UAAF-SPEC-001
-- UAAF-MTH-001
-- UAAF-CTR-001
-- UAAF-RUL-001
+```text
+UAAF-CONSTITUTION-###
+UAAF-GOV-###
+UAAF-ARC-###
+UAAF-STD-###
+UAAF-SPEC-###
+UAAF-MTH-###
+UAAF-PLAN-###
+```
 
----
+Existing IDs are preserved even when later conventions become more concise.
 
-# 11. Documentation Responsibility Matrix
+## 11. Current Permanent Documentation Responsibilities
 
-| Document Type | Responsible For |
-|---------------|-----------------|
-| Constitution | Identity and principles |
-| Governance | Governance and hierarchy |
-| Architecture | Structural design |
-| Standards | Engineering rules |
-| Specifications | Functional contracts |
-| Methodologies | Audit procedures |
-| Schemas | Data validation |
-| Profiles | Audit configuration |
-| Rule Packs | Audit criteria |
-| Templates | Reusable formats |
+| Area | Directory | Responsibility |
+|---|---|---|
+| Governance | `00_DOCUMENTATION/01_GOVERNANCE/` | Principles, hierarchy, governance, language, engineering rules |
+| Architecture | `00_DOCUMENTATION/02_ARCHITECTURE/` | Current structural architecture and implementation boundaries |
+| Methodology | `00_DOCUMENTATION/03_METHODOLOGY/` | Audit, findings, evidence, traceability, scoring policy, reporting |
+| Planning | `00_DOCUMENTATION/04_PLANNING/` | Completed milestones, current acceptance baseline, future roadmap |
+| Public guides | `README.md`, `docs/` | User-facing operation and examples |
+| History | `CHANGELOG.md`, Git history | Milestones and significant changes |
 
----
+Transient session files are not permanent documentation and shall not be required to understand or operate UAAF.
 
-# 12. Compliance
+## 12. Compliance
 
-Every document within UAAF shall comply with this hierarchy.
-
-Non-compliant documentation shall be considered invalid until corrected.
+A document that lacks required metadata, presents historical design as current implementation, or contradicts a higher-authority document shall be corrected before being considered current.
 
 ---
-
 # End of Document

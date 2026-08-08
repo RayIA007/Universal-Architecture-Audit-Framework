@@ -1,108 +1,133 @@
 # UAAF Core Architecture
-**Universal Architecture Audit Framework v1.0**
+**Universal Architecture Audit Framework (UAAF)**
 
 **Document ID:** UAAF-ARC-001
-**Version:** 1.0
-**Status:** Approved
+**Version:** 2.0
+**Status:** Maintained
 **Classification:** Architecture
+**Owner:** Architecture
 
 ---
 
-# 1. Purpose
+## 1. Purpose
 
-This document defines the high-level architecture of the Universal Architecture Audit Framework (UAAF).
+Define the current high-level structural architecture of UAAF.
 
-It establishes the permanent structural organization of the framework.
+This revision supersedes the historical component list that treated dedicated Contract, Rule, Evidence, Scoring, and Traceability engines as mandatory current components.
 
-Implementation details are intentionally excluded.
+## 2. Canonical Architecture
+
+```text
+run.py
+  |
+  v
+uaaf_core.cli
+  |
+  v
+ResolvedConfig
+  |
+  v
+UnifiedOrchestrator
+  |
+  +--> UAAFRegistry --> discovered / selected plugins
+  |
+  +--> RuntimeContext / UAAFKernel / UAAFRuntime
+  |        |
+  |        `--> dynamic ProcessorContract adapters
+  |                 |
+  |                 `--> plugin run(context)
+  |
+  v
+ordered plugin AuditResult data
+  |
+  v
+consolidated AuditResult
+  |
+  v
+ReportEngine
+  |
+  +--> Markdown
+  +--> JSON
+  `--> SarifExporter --> SARIF 2.1.0
+```
+
+## 3. Core Components
+
+Current core responsibilities are implemented by:
+
+- `run.py` — repository entry point;
+- `uaaf_core.cli` — public CLI and process-level error mapping;
+- `ResolvedConfig` — immutable canonical configuration;
+- `UnifiedOrchestrator` — unified execution coordinator;
+- `UAAFRegistry` — processor/profile registry plus deterministic plugin registry;
+- `UAAFKernel` / `UAAFRuntime` / `RuntimeContext` — runtime lifecycle and processor execution infrastructure;
+- `AuditResult` — canonical auditor/consolidated result contract;
+- `ReportEngine` — Markdown/JSON reporting and SARIF delegation;
+- `SarifExporter` — SARIF 2.1.0 interoperability projection.
+
+## 4. Auditor Layer
+
+Current auditor plugins:
+
+```text
+architecture-auditor
+documentation-auditor
+testing-auditor
+configuration-auditor
+ai-systems-auditor
+```
+
+Each auditor owns its domain-specific static analysis.
+
+The core does not implement the individual auditor rule logic.
+
+## 5. Public Contract Boundary
+
+Normal users interact through:
+
+```powershell
+python run.py ...
+```
+
+Plugins expose:
+
+```python
+run(context) -> dict[str, Any]
+```
+
+Returned data must satisfy the canonical audit-result contract.
+
+## 6. Deterministic Execution
+
+The architecture preserves deterministic ordering in discovery, selection, processor execution, result extraction, consolidation, and serialization where the implementation defines such ordering.
+
+## 7. Configuration Boundary
+
+The CLI and configuration loader resolve one `ResolvedConfig`.
+
+The orchestrator projects only supported plugin-specific fields into each selected plugin's isolated context.
+
+## 8. Reporting Boundary
+
+Markdown and JSON represent UAAF reports derived from the canonical result.
+
+SARIF is a stricter interoperability projection and may omit a canonical finding from SARIF `results[]` if no safe exportable artifact URI exists.
+
+## 9. Current Limitations
+
+The architecture currently executes selected plugins sequentially.
+
+No current claim is made for parallel execution, persistent caching, incremental auditing, web services, SaaS operation, or automatic remediation.
+
+## 10. Related Documents
+
+- `UAAF_RUNTIME_ARCHITECTURE.md`
+- `UAAF_LAYERED_ARCHITECTURE.md`
+- `UAAF_PIPELINE_ARCHITECTURE.md`
+- `UAAF_PLUGIN_ARCHITECTURE.md`
+- `UAAF_DATA_MODEL.md`
+- `UAAF_SECURITY_MODEL.md`
+- `../../docs/architecture.md`
 
 ---
-
-# 2. Architectural Principles
-
-The architecture shall be:
-
-- Modular
-- Layered
-- Extensible
-- Deterministic
-- Technology independent
-- Traceable
-
----
-
-# 3. Architectural Layers
-
-UAAF is composed of the following layers.
-
-| Layer | Responsibility |
-|---------|---------------|
-| Governance | Governs the framework. |
-| Specifications | Defines contracts. |
-| Kernel | Coordinates the audit execution. |
-| Engines | Execute specialized responsibilities. |
-| Plugins | Extend framework capabilities. |
-| Profiles | Configure audits. |
-| Reports | Produce audit results. |
-
----
-
-# 4. Core Components
-
-The architecture contains the following mandatory components.
-
-- Kernel
-- Audit Orchestrator
-- Contract Engine
-- Rule Engine
-- Evidence Engine
-- Scoring Engine
-- Traceability Engine
-- Report Engine
-- Plugin Manager
-
----
-
-# 5. Component Independence
-
-Each component shall:
-
-- Have one primary responsibility.
-- Be independently testable.
-- Communicate only through defined contracts.
-
----
-
-# 6. Extension Model
-
-Framework capabilities shall be extended through:
-
-- Plugins
-- Rule Packages
-- Audit Profiles
-- Templates
-
-The Kernel shall remain unchanged.
-
----
-
-# 7. Architectural Constraints
-
-The architecture shall never:
-
-- Depend on a specific programming language.
-- Depend on a specific storage engine.
-- Depend on a specific user interface.
-- Depend on a specific project type.
-
----
-
-# 8. Stability
-
-Core architectural responsibilities are permanent.
-
-Future versions shall evolve through extension rather than structural redesign.
-
----
-
 # End of Document

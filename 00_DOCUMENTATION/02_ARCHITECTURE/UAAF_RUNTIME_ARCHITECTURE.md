@@ -1,112 +1,110 @@
 # UAAF Runtime Architecture
-**Universal Architecture Audit Framework v1.0**
+**Universal Architecture Audit Framework (UAAF)**
 
 **Document ID:** UAAF-ARC-002
-**Version:** 1.0
-**Status:** Approved
+**Version:** 2.0
+**Status:** Maintained
 **Classification:** Architecture
+**Owner:** Architecture
 
 ---
 
-# 1. Purpose
+## 1. Purpose
 
-This document defines the runtime execution model of UAAF.
+Define how the current unified UAAF execution uses the existing kernel/runtime infrastructure.
 
-It specifies how an audit is executed from initialization to report generation.
+## 2. Runtime Relationship to the Unified Orchestrator
 
-Implementation details are excluded.
+`UnifiedOrchestrator.run_resolved()` is the current top-level execution coordinator.
 
----
+For one resolved execution it:
 
-# 2. Runtime Principles
+1. validates execution paths;
+2. discovers and selects plugins through `UAAFRegistry`;
+3. builds isolated plugin contexts;
+4. creates a temporary runtime workspace;
+5. adapts each selected plugin to a `ProcessorContract`;
+6. creates a runtime profile describing the selected processors/plugins;
+7. asks `UAAFKernel` to create `UAAFRuntime`;
+8. executes the runtime sequentially;
+9. extracts ordered plugin `AuditResult` data;
+10. consolidates results;
+11. writes requested reports;
+12. determines the process exit code.
 
-Runtime execution shall be:
+## 3. UAAFRuntime Lifecycle
 
-- Deterministic
-- Repeatable
-- Traceable
-- Observable
-- Extensible
-- Fault tolerant
+The underlying runtime lifecycle is:
 
----
+```text
+initialize
+  -> start
+  -> execute profile processors
+  -> complete
+```
 
-# 3. Runtime Lifecycle
+A runtime failure transitions the runtime/session to failure handling before the exception is re-raised to the appropriate caller.
 
-Every audit shall execute the following stages.
+## 4. RuntimeContext
 
-1. Initialization
-2. Target Discovery
-3. Profile Loading
-4. Rule Loading
-5. Artifact Collection
-6. Analysis
-7. Finding Generation
-8. Evidence Collection
-9. Score Calculation
-10. Report Generation
-11. Completion
+The runtime owns one `RuntimeContext`.
 
----
+It carries the audit/session/profile/registry relationships, processor results, runtime metadata, metrics, paths, and shared/session state required by the runtime infrastructure.
 
-# 4. Runtime Context
+The plugin context passed to `run(context)` is a separate filtered dictionary built by the orchestrator.
 
-A runtime context shall exist during the entire audit.
+## 5. Dynamic Auditor Processor Adapter
 
-The context shall contain:
+Each selected plugin is wrapped by a runtime `ProcessorContract` type.
 
-- Target
-- Profile
-- Active Rules
-- Findings
-- Evidence
-- Metrics
-- Scores
-- Execution Metadata
+The adapter:
 
----
+- validates that an isolated plugin context exists;
+- calls the validated plugin runner;
+- validates the returned audit-result mapping;
+- converts an unexpected plugin exception into a canonical failed `AuditResult`;
+- stores the audit result in runtime/session output state.
 
-# 5. Execution Rules
+This preserves the existing runtime processor model while supporting dynamically discovered auditors.
 
-Runtime execution shall:
+## 6. Failure Behavior
 
-- Preserve execution order.
-- Preserve context integrity.
-- Record every execution stage.
-- Support interruption recovery.
+Plugin execution failure does not require inventing a partial successful result.
 
----
+The orchestrator/runtime records a canonical failed result with execution error information.
 
-# 6. Failure Handling
+Final exit-code rules are:
 
-Execution failures shall:
+```text
+plugin/runtime/configuration failure -> 2
+matching fail_on finding             -> 1
+otherwise                            -> 0
+```
 
-- Preserve collected evidence.
-- Record failure information.
-- Never invalidate completed stages.
-- Produce an execution summary.
+Execution failure has priority.
 
----
+## 7. Sequential Execution
 
-# 7. Runtime Outputs
+Selected plugins are executed sequentially in deterministic selected order.
 
-Every execution shall produce:
+Parallel, asynchronous, or multiprocess orchestration is not a current feature.
 
-- Findings
-- Evidence
-- Scores
-- Metrics
-- Logs
-- Final Report
+## 8. Runtime Outputs
 
----
+The unified runtime produces ordered per-plugin canonical results for the orchestrator.
 
-# 8. Extensibility
+The orchestrator then produces:
 
-Runtime behavior may be extended through official extension points.
+- one consolidated canonical result;
+- requested report paths;
+- runtime context;
+- final exit code.
 
-Extensions shall not modify the execution lifecycle.
+## 9. Historical Clarification
+
+The previous runtime architecture document described mandatory stages for profile loading, rule loading, evidence collection, score calculation, and a fixed eleven-stage pipeline.
+
+That model is not the current unified CLI contract and is superseded by this revision.
 
 ---
-
 # End of Document

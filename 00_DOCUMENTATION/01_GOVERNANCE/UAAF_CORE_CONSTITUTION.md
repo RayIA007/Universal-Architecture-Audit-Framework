@@ -1,149 +1,139 @@
 # UAAF Core Constitution
-**Universal Architecture Audit Framework v1.0**
+**Universal Architecture Audit Framework (UAAF)**
 
-**Document ID:** UAAF-CONSTITUTION-001  
-**Version:** 1.0  
-**Status:** Approved  
+**Document ID:** UAAF-CONSTITUTION-001
+**Version:** 1.1
+**Status:** Maintained
 **Classification:** Foundational Governance Document
+**Owner:** Architecture
 
 ---
 
-# 1. Purpose
+## 1. Purpose
 
-This Constitution defines the permanent identity, principles and governance of the Universal Architecture Audit Framework (UAAF).
+This Constitution defines the permanent identity, principles, and governance of the Universal Architecture Audit Framework (UAAF).
 
-It is the highest authority of the framework. Every standard, specification, implementation and plugin shall comply with this Constitution.
+It is the highest-authority UAAF document. Architecture, standards, specifications, implementation, plugins, methodologies, planning, and public documentation shall not contradict it.
 
----
+## 2. Scope
 
-# 2. Scope
+This Constitution applies to:
 
-This Constitution applies to every component of UAAF, including:
+- governance and documentation;
+- framework architecture and runtime;
+- configuration and public CLI behavior;
+- auditor plugins and extension contracts;
+- canonical findings and results;
+- reporting and interoperability formats;
+- tests, CI/CD, and future extensions.
 
-- Documentation
-- Specifications
-- Source code
-- Runtime
-- Audit engines
-- Plugins
-- Audit profiles
-- Reports
-- Future extensions
+## 3. Mission
 
----
+Provide an objective, reproducible, evidence-based framework for auditing software architecture, engineering practices, documentation, configuration, testing structure, and AI-system implementation risks.
 
-# 3. Mission
+## 4. Vision
 
-Provide an objective, reproducible and evidence-based framework for auditing software architecture, engineering practices, documentation and artificial intelligence systems.
+UAAF may evolve toward broader technology coverage while preserving deterministic execution, traceable results, explicit contracts, and plugin-oriented extensibility.
 
----
+Future capability is not considered implemented merely because it appears in a roadmap or historical design document.
 
-# 4. Vision
-
-Become a universal framework capable of evaluating any technology project through standardized contracts, rules, evidence and traceable audit processes.
-
----
-
-# 5. Core Principles
-
-The framework is governed by the following permanent principles.
+## 5. Core Principles
 
 1. Evidence over opinion.
-2. Contracts over implementations.
-3. Rules over assumptions.
-4. Traceability is mandatory.
-5. Every audit must be reproducible.
-6. Every conclusion must be verifiable.
-7. The Kernel remains technology independent.
-8. The framework is extensible through plugins.
-9. Results must be explainable.
-10. Simplicity is preferred over unnecessary complexity.
+2. Contracts over assumptions.
+3. Deterministic behavior over implicit behavior.
+4. Findings must be explainable and traceable.
+5. Audit execution must be reproducible within the documented environment and inputs.
+6. Core framework responsibilities must remain separated from auditor-specific analysis.
+7. Extension should occur through stable contracts and plugins rather than ad hoc coupling.
+8. Public documentation must describe implemented behavior, not roadmap aspirations.
+9. Security-sensitive data must be handled conservatively.
+10. Simplicity is preferred over unnecessary architectural complexity.
+
+## 6. Core Values
+
+UAAF prioritizes:
+
+- objectivity;
+- consistency;
+- transparency;
+- maintainability;
+- modularity;
+- reproducibility;
+- traceability;
+- security-conscious behavior.
+
+## 7. Governance
+
+This Constitution prevails when a lower-authority UAAF document conflicts with it.
+
+A difference between implementation and descriptive documentation is a documentation defect that must be reconciled; it does not authorize undocumented behavior.
+
+## 8. Evolution
+
+New capabilities may be incorporated when they:
+
+- preserve existing public contracts whenever practical;
+- maintain deterministic behavior;
+- remain testable;
+- preserve report/result compatibility or explicitly version a breaking change;
+- update permanent and public documentation at the same time.
+
+## 9. Neutrality and Implementation Reality
+
+The long-term framework design should avoid unnecessary coupling to a single audited project.
+
+The current implementation is a Python framework executed from source. Current validated environments and supported behavior are documented in `README.md` and `docs/`.
+
+Architectural neutrality is a design principle, not a claim that every language, platform, storage engine, interface, or deployment model is currently supported.
+
+## 10. Architecture Stability
+
+Stable responsibilities include:
+
+- configuration resolution;
+- orchestration;
+- deterministic plugin discovery and selection;
+- runtime execution;
+- canonical result validation;
+- report generation;
+- process exit semantics.
+
+Dedicated historical components such as a Contract Engine, Rule Engine, Evidence Engine, Scoring Engine, Traceability Engine, or Patch Engine are not current mandatory runtime components unless implemented and documented as such.
+
+## 11. Documentation Policy
+
+Each official UAAF document shall:
+
+- have one primary responsibility;
+- carry document metadata;
+- avoid unnecessary duplication;
+- reference governing or detailed documents instead of repeating them;
+- distinguish current implementation from historical or future design;
+- be updated when implementation changes make the document inaccurate.
+
+## 12. Success Criteria
+
+UAAF is successful when it can:
+
+- execute repeatable audits;
+- discover and run valid auditors through defined contracts;
+- produce normalized findings and execution errors;
+- generate deterministic human- and machine-readable reports;
+- support traceable CI use;
+- evolve without silently changing public contracts.
+
+## 13. Amendment Policy
+
+Changes to this Constitution require architectural review and an explicit version increment.
+
+No amendment may present unimplemented roadmap capability as current functionality.
+
+## 14. Governing Relationships
+
+This document governs all UAAF documents.
+
+The documentation hierarchy is defined by `UAAF_DOCUMENT_HIERARCHY.md`.
 
 ---
-
-# 6. Core Values
-
-UAAF shall always prioritize:
-
-- Objectivity
-- Consistency
-- Transparency
-- Maintainability
-- Modularity
-- Scalability
-- Reproducibility
-- Neutrality
-
----
-
-# 7. Governance
-
-This Constitution has the highest authority within UAAF.
-
-No document, implementation or extension may contradict its principles.
-
-If a conflict exists, this Constitution prevails.
-
----
-
-# 8. Evolution
-
-UAAF is designed for continuous evolution.
-
-New capabilities may be incorporated provided they:
-
-- Preserve backward compatibility whenever practical.
-- Respect this Constitution.
-- Maintain architectural integrity.
-- Preserve audit reproducibility.
-
----
-
-# 9. Neutrality
-
-The Kernel shall remain independent of any audited project.
-
-Project-specific behavior shall be implemented through audit profiles, plugins or rule packages, never by modifying the Kernel.
-
----
-
-# 10. Architecture Stability
-
-The architecture shall evolve through extension, not fragmentation.
-
-Core responsibilities shall remain stable across future versions.
-
----
-
-# 11. Documentation Policy
-
-Each document within UAAF shall:
-
-- Have a single responsibility.
-- Avoid duplicated information.
-- Be concise and normative.
-- Reference, rather than repeat, external definitions.
-
----
-
-# 12. Success Criteria
-
-UAAF is considered successful when it can:
-
-- Execute repeatable audits.
-- Produce objective findings.
-- Preserve complete evidence.
-- Generate traceable reports.
-- Evaluate different project types without modifying the Kernel.
-
----
-
-# 13. Amendment Policy
-
-Changes to this Constitution require architectural review.
-
-No amendment may violate the permanent principles defined in this document.
-
----
-
-# End of Constitution
+# End of Document

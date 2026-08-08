@@ -40,7 +40,7 @@ Complete suite:
 python -m pytest -q
 ```
 
-Recorded baseline before Phase 3.6 documentation work:
+Current validated full-suite baseline:
 
 ```text
 820 passed
@@ -123,7 +123,7 @@ This prevents the SARIF upload step from running for fork-origin pull requests.
 
 ## Validation before a documentation commit
 
-Recommended Phase 3.6 validation sequence:
+Recommended documentation-change validation sequence:
 
 ```powershell
 python run.py --help
